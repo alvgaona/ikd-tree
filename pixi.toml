@@ -1,0 +1,26 @@
+[workspace]
+name = "ikd-tree"
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64"]
+preview = ["pixi-build"]
+
+[package]
+name = "ikd-tree"
+version = "0.1.0"
+
+[package.build]
+backend = { name = "pixi-build-cmake", version = "*" }
+
+[package.build.config]
+compilers = ["cxx"]
+extra-args = ["-DCMAKE_CXX_STANDARD=17"]
+
+[package.build-dependencies]
+cmake = ">=3.15"
+ninja = "*"
+
+[package.host-dependencies]
+pcl = ">=1.8"
+
+[package.run-dependencies]
+pcl = ">=1.8"

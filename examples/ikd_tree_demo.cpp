@@ -4,7 +4,7 @@
     Email: yixicai@connect.hku.hk
 */
 
-#include <ikd_Tree.h>
+#include <ikd_tree.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <random>
