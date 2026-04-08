@@ -1,9 +1,5 @@
 #pragma once
-#include <stdio.h>
-#include <queue>
 #include <pthread.h>
-#include <chrono>
-#include <time.h>
 #include <unistd.h>
 #include <math.h>
 #include <algorithm>

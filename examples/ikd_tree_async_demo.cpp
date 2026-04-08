@@ -6,9 +6,6 @@
 
 #include "ikd_tree.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <random>
-#include <algorithm>
 #include "pcl/point_types.h"
 #include "pcl/common/common.h"
 #include "pcl/point_cloud.h"
