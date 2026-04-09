@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include "ikd_tree.h"
 
+#include <algorithm>
 #include <cmath>
+#include <random>
 #include <vector>
 
 using Point = ikdTree_PointType;
@@ -322,4 +324,119 @@ TEST(IkdTreeEmptyTest, TreeRangeOnEmptyTreeIsZero) {
     BoxPointType range = tree.tree_range();
     EXPECT_EQ(range.vertex_min[0], 0.0f);
     EXPECT_EQ(range.vertex_max[0], 0.0f);
+}
+
+// --- kNN correctness oracle: brute-force reference ---
+
+static std::vector<std::pair<float, int>> brute_force_knn(const PointVector &cloud,
+                                                          const Point &query, int k,
+                                                          double max_dist = INFINITY) {
+    std::vector<std::pair<float, int>> dists;
+    dists.reserve(cloud.size());
+    double max_dist_sq = max_dist * max_dist;
+    for (int i = 0; i < (int)cloud.size(); ++i) {
+        float dx = cloud[i].x - query.x;
+        float dy = cloud[i].y - query.y;
+        float dz = cloud[i].z - query.z;
+        float d = dx * dx + dy * dy + dz * dz;
+        if (d <= max_dist_sq) dists.emplace_back(d, i);
+    }
+    int kk = std::min<int>(k, (int)dists.size());
+    std::partial_sort(dists.begin(), dists.begin() + kk, dists.end(),
+                      [](const auto &a, const auto &b) { return a.first < b.first; });
+    dists.resize(kk);
+    return dists;
+}
+
+static PointVector make_random_cloud(int n, uint32_t seed, float spread = 100.0f) {
+    PointVector pts;
+    pts.reserve(n);
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<float> u(-spread, spread);
+    for (int i = 0; i < n; ++i) pts.push_back(Point(u(rng), u(rng), u(rng)));
+    return pts;
+}
+
+class IkdTreeKnnReferenceTest : public ::testing::TestWithParam<int> {};
+
+TEST_P(IkdTreeKnnReferenceTest, MatchesBruteForceOnRandomCloud) {
+    int k = GetParam();
+    PointVector cloud = make_random_cloud(2000, 42);
+    Tree tree;
+    tree.Build(cloud);
+
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<float> u(-150.0f, 150.0f);
+
+    for (int q = 0; q < 50; ++q) {
+        Point query(u(rng), u(rng), u(rng));
+
+        PointVector knn_pts;
+        std::vector<float> knn_d;
+        tree.Nearest_Search(query, k, knn_pts, knn_d);
+
+        auto truth = brute_force_knn(cloud, query, k);
+
+        ASSERT_EQ(knn_pts.size(), truth.size()) << "k=" << k << " query=" << q;
+        for (size_t i = 0; i < truth.size(); ++i) {
+            EXPECT_NEAR(knn_d[i], truth[i].first, 1e-3f)
+                << "k=" << k << " query=" << q << " i=" << i;
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(VariousK, IkdTreeKnnReferenceTest,
+                         ::testing::Values(1, 5, 16, 50, 200));
+
+TEST(IkdTreeKnnReference, MatchesBruteForceWithMaxDist) {
+    PointVector cloud = make_random_cloud(1000, 99);
+    Tree tree;
+    tree.Build(cloud);
+
+    std::mt19937 rng(123);
+    std::uniform_real_distribution<float> u(-150.0f, 150.0f);
+
+    for (int q = 0; q < 30; ++q) {
+        Point query(u(rng), u(rng), u(rng));
+        double max_dist = 25.0;
+
+        PointVector knn_pts;
+        std::vector<float> knn_d;
+        tree.Nearest_Search(query, 20, knn_pts, knn_d, max_dist);
+
+        auto truth = brute_force_knn(cloud, query, 20, max_dist);
+
+        ASSERT_EQ(knn_pts.size(), truth.size()) << "query=" << q;
+        for (size_t i = 0; i < truth.size(); ++i) {
+            EXPECT_NEAR(knn_d[i], truth[i].first, 1e-3f);
+        }
+    }
+}
+
+TEST(IkdTreeKnnReference, MatchesBruteForceAfterIncrementalAddDelete) {
+    PointVector cloud = make_random_cloud(500, 11);
+    Tree tree;
+    tree.Build(cloud);
+
+    PointVector to_add = make_random_cloud(500, 22, 80.0f);
+    tree.Add_Points(to_add, false);
+    PointVector full = cloud;
+    full.insert(full.end(), to_add.begin(), to_add.end());
+
+    std::mt19937 rng(33);
+    std::uniform_real_distribution<float> u(-100.0f, 100.0f);
+
+    for (int q = 0; q < 30; ++q) {
+        Point query(u(rng), u(rng), u(rng));
+        PointVector knn_pts;
+        std::vector<float> knn_d;
+        tree.Nearest_Search(query, 10, knn_pts, knn_d);
+
+        auto truth = brute_force_knn(full, query, 10);
+
+        ASSERT_EQ(knn_pts.size(), truth.size());
+        for (size_t i = 0; i < truth.size(); ++i) {
+            EXPECT_NEAR(knn_d[i], truth[i].first, 1e-3f);
+        }
+    }
 }

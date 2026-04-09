@@ -372,7 +372,7 @@ void KD_TREE<PointType>::Build(PointVector point_cloud){
 
 template <typename PointType>
 void KD_TREE<PointType>::Nearest_Search(const PointType &point, int k_nearest, PointVector& Nearest_Points, vector<float> & Point_Distance, double max_dist){
-    MANUAL_HEAP q(2*k_nearest);
+    MANUAL_HEAP q(k_nearest);
     q.clear();
     vector<float> ().swap(Point_Distance);
     if (Rebuild_Ptr == nullptr || *Rebuild_Ptr != Root_Node){
@@ -887,10 +887,11 @@ void KD_TREE<PointType>::Add_by_point(KD_TREE_NODE ** root, const PointType &poi
 
 template <typename PointType>
 void KD_TREE<PointType>::Search(KD_TREE_NODE * root, int k_nearest, const PointType &point, MANUAL_HEAP &q, double max_dist){
-    if (root == nullptr || root->tree_deleted) return;   
+    if (root == nullptr || root->tree_deleted) return;
     double cur_dist = calc_box_dist(root, point);
     double max_dist_sqr = max_dist * max_dist;
-    if (cur_dist > max_dist_sqr) return;    
+    double prune = (q.size() >= k_nearest) ? std::min((double)q.top().dist, max_dist_sqr) : max_dist_sqr;
+    if (cur_dist > prune) return;
     int retval; 
     if (root->need_push_down_to_left || root->need_push_down_to_right) {
         retval = pthread_mutex_trylock(&(root->push_down_mutex_lock));
@@ -913,7 +914,7 @@ void KD_TREE<PointType>::Search(KD_TREE_NODE * root, int k_nearest, const PointT
     int cur_search_counter;
     float dist_left_node = calc_box_dist(root->left_son_ptr, point);
     float dist_right_node = calc_box_dist(root->right_son_ptr, point);
-    if (q.size()< k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist){
+    if (q.size() < k_nearest || dist_left_node < q.top().dist || dist_right_node < q.top().dist) {
         if (dist_left_node <= dist_right_node) {
             if (Rebuild_Ptr == nullptr || *Rebuild_Ptr != root->left_son_ptr){
                 Search(root->left_son_ptr, k_nearest, point, q, max_dist);                       

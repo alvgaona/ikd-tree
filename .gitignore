@@ -2,6 +2,7 @@ build/
 build_*/
 /.vscode
 /.pixi/
+/.cache/
 /.claude/
 CLAUDE.md
 compile_commands.json
