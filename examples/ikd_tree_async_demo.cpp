@@ -6,8 +6,10 @@
 
 #include "ikd_tree.h"
 #include <stdio.h>
+#include <vector>
 #include "pcl/point_types.h"
-#include "pcl/common/common.h"
+
+using namespace std;
 #include "pcl/point_cloud.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -98,8 +100,9 @@ int main(int argc, char **argv) {
 
     /*** 5. Check remaining points in ikd-Tree */
     pcl::PointCloud<PointType>::Ptr Remaining_Points(new pcl::PointCloud<PointType>);
-    ikd_Tree.flatten(ikd_Tree.Root_Node, ikd_Tree.PCL_Storage, NOT_RECORD);
-    Remaining_Points->points = ikd_Tree.PCL_Storage;
+    KD_TREE<PointType>::PointVector remaining;
+    ikd_Tree.flatten(remaining);
+    Remaining_Points->points = remaining;
     printf("Finally, %d Points remain\n", static_cast<int>(Remaining_Points->points.size()));
 
     /*** Below codes are just for visualization */

@@ -1,2 +1,8 @@
 build/
+build_*/
 /.vscode
+/.pixi/
+/.claude/
+CLAUDE.md
+compile_commands.json
+*.conda

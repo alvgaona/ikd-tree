@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <random>
 #include <algorithm>
+#include <vector>
+
+using namespace std;
 
 using PointType = ikdTree_PointType;
 using PointVector = KD_TREE<PointType>::PointVector;

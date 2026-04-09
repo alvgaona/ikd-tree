@@ -4,6 +4,20 @@ channels = ["https://prefix.dev/conda-forge"]
 platforms = ["osx-arm64", "osx-64", "linux-64", "linux-aarch64"]
 preview = ["pixi-build"]
 
+[dependencies]
+pcl = ">=1.8"
+eigen = "3.4.*"
+libboost-devel = "*"
+gtest = "*"
+cmake = ">=3.15"
+ninja = "*"
+cxx-compiler = "*"
+
+[tasks]
+configure = { cmd = "cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release" }
+build-tests = { cmd = "cmake --build build --parallel", depends-on = ["configure"] }
+test = { cmd = "ctest --test-dir build --output-on-failure", depends-on = ["build-tests"] }
+
 [package]
 name = "ikd-tree"
 version = "0.1.0"
@@ -18,6 +32,7 @@ extra-args = ["-DCMAKE_CXX_STANDARD=17"]
 [package.build-dependencies]
 cmake = ">=3.15"
 ninja = "*"
+gtest = "*"
 
 [package.host-dependencies]
 pcl = ">=1.8"

@@ -4,7 +4,10 @@
 */
 #include "ikd_tree.h"
 #include <stdio.h>
+#include <vector>
 #include "pcl/point_types.h"
+
+using namespace std;
 #include "pcl/common/common.h"
 #include "pcl/point_cloud.h"
 #include <pcl/io/pcd_io.h>
