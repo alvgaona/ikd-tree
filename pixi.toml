@@ -9,14 +9,16 @@ pcl = ">=1.8"
 eigen = "3.4.*"
 libboost-devel = "*"
 gtest = "*"
+benchmark = "*"
 cmake = ">=3.15"
 ninja = "*"
 cxx-compiler = "*"
 
 [tasks]
-configure = { cmd = "cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release" }
+configure = { cmd = "cmake -B build -S . -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release" }
 build-tests = { cmd = "cmake --build build --parallel", depends-on = ["configure"] }
 test = { cmd = "ctest --test-dir build --output-on-failure", depends-on = ["build-tests"] }
+bench = { cmd = "./build/ikd_tree_bench --benchmark_min_time=0.5s", depends-on = ["build-tests"] }
 
 [package]
 name = "ikd-tree"

@@ -50,4 +50,12 @@ if(BUILD_TESTING)
     add_test(NAME ikd_tree_tests COMMAND ikd_tree_tests)
 endif()
 
+option(BUILD_BENCHMARKS "Build kNN benchmarks" OFF)
+if(BUILD_BENCHMARKS)
+    find_package(benchmark REQUIRED)
+    add_executable(ikd_tree_bench bench/bench_ikd_tree.cpp ikd_tree/ikd_tree.cpp)
+    target_include_directories(ikd_tree_bench PRIVATE ${PCL_INCLUDE_DIRS} ikd_tree)
+    target_link_libraries(ikd_tree_bench benchmark::benchmark_main ${PCL_LIBRARIES})
+endif()
+
 install(FILES ikd_tree/ikd_tree.h DESTINATION include/ikd_tree)
