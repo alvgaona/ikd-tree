@@ -1,4 +1,4 @@
-#include "ikd_tree.h"
+#include <ikd_tree/ikd_tree.h>
 
 #include <pthread.h>
 #include <unistd.h>

@@ -23,7 +23,7 @@ if(NOT "$ENV{CONDA_PREFIX}" STREQUAL "")
     add_compile_options("-I$ENV{CONDA_PREFIX}/include")
 endif()
 
-add_library(ikd_tree STATIC ikd_tree/ikd_tree.cpp)
+add_library(ikd_tree STATIC src/ikd_tree.cpp)
 add_library(ikd_tree::ikd_tree ALIAS ikd_tree)
 
 target_compile_features(ikd_tree PUBLIC cxx_std_17)
@@ -36,7 +36,7 @@ target_compile_options(ikd_tree PRIVATE -O3)
 
 target_include_directories(ikd_tree
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 foreach(_pcl_inc ${PCL_INCLUDE_DIRS})
@@ -82,9 +82,7 @@ install(TARGETS ikd_tree
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-install(FILES ikd_tree/ikd_tree.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikd_tree
-)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(EXPORT ikd_treeTargets
     NAMESPACE ikd_tree::

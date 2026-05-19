@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  build:
+    name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,28 +21,38 @@ jobs:
         with:
           pixi-version: latest
 
-      - name: Run tests
+      - name: Build all targets (lib + tests + bench + examples)
+        run: pixi run build
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+
+      - name: Run unit tests
         run: pixi run test
 
       - name: Smoke-run benchmark
         run: pixi run bench
 
-  sanitizers:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: prefix-dev/setup-pixi@v0.8.1
-        with:
-          pixi-version: latest
-
-      - name: Run tests under AddressSanitizer + UBSan
+      - name: AddressSanitizer + UBSan
+        if: runner.os == 'Linux'
         run: pixi run test-asan
 
-      - name: Run tests under ThreadSanitizer
+      - name: ThreadSanitizer
+        if: runner.os == 'Linux'
         run: pixi run test-tsan
 
-  format:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,5 +61,5 @@ jobs:
         with:
           pixi-version: latest
 
-      - name: Check clang-format compliance
+      - name: clang-format check
         run: pixi run format-check
