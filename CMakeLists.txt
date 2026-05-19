@@ -1,20 +1,17 @@
-cmake_minimum_required(VERSION 3.5...4.3)
+cmake_minimum_required(VERSION 3.15...4.3)
 
-project(ikd_tree)
+project(ikd_tree VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "-pthread -O3")
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_EXAMPLES "Build example executables" OFF)
+option(BUILD_BENCHMARKS "Build kNN benchmarks" OFF)
 
 find_package(PCL 1.8 REQUIRED)
-
-include_directories(
-    ${PCL_INCLUDE_DIRS}
-    ikd_tree
-)
+find_package(Threads REQUIRED)
 
 # Workaround: conda-forge's boost_headers-config.cmake hardcodes
 # `_BOOST_CMAKEDIR` to the build-time runner path (e.g.
@@ -26,15 +23,36 @@ if(NOT "$ENV{CONDA_PREFIX}" STREQUAL "")
     add_compile_options("-I$ENV{CONDA_PREFIX}/include")
 endif()
 
+add_library(ikd_tree STATIC ikd_tree/ikd_tree.cpp)
+add_library(ikd_tree::ikd_tree ALIAS ikd_tree)
+
+target_compile_features(ikd_tree PUBLIC cxx_std_17)
+set_target_properties(ikd_tree PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    POSITION_INDEPENDENT_CODE ON
+)
+target_compile_options(ikd_tree PRIVATE -O3)
+
+target_include_directories(ikd_tree
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+)
+foreach(_pcl_inc ${PCL_INCLUDE_DIRS})
+    target_include_directories(ikd_tree SYSTEM PUBLIC $<BUILD_INTERFACE:${_pcl_inc}>)
+endforeach()
+target_link_libraries(ikd_tree PUBLIC ${PCL_LIBRARIES} Threads::Threads)
+
 if(BUILD_EXAMPLES)
-    add_executable(ikd_tree_demo examples/ikd_tree_demo.cpp ikd_tree/ikd_tree.cpp)
-    target_link_libraries(ikd_tree_demo ${PCL_LIBRARIES})
+    add_executable(ikd_tree_demo examples/ikd_tree_demo.cpp)
+    target_link_libraries(ikd_tree_demo PRIVATE ikd_tree::ikd_tree)
 
-    add_executable(ikd_tree_async_demo examples/ikd_tree_async_demo.cpp ikd_tree/ikd_tree.cpp)
-    target_link_libraries(ikd_tree_async_demo ${PCL_LIBRARIES})
+    add_executable(ikd_tree_async_demo examples/ikd_tree_async_demo.cpp)
+    target_link_libraries(ikd_tree_async_demo PRIVATE ikd_tree::ikd_tree)
 
-    add_executable(ikd_tree_search_demo examples/ikd_tree_search_demo.cpp ikd_tree/ikd_tree.cpp)
-    target_link_libraries(ikd_tree_search_demo ${PCL_LIBRARIES})
+    add_executable(ikd_tree_search_demo examples/ikd_tree_search_demo.cpp)
+    target_link_libraries(ikd_tree_search_demo PRIVATE ikd_tree::ikd_tree)
 
     install(TARGETS ikd_tree_demo ikd_tree_async_demo ikd_tree_search_demo
         RUNTIME DESTINATION bin
@@ -44,18 +62,50 @@ endif()
 include(CTest)
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
-    add_executable(ikd_tree_tests tests/test_ikd_tree.cpp ikd_tree/ikd_tree.cpp)
-    target_include_directories(ikd_tree_tests PRIVATE ${PCL_INCLUDE_DIRS} ikd_tree)
-    target_link_libraries(ikd_tree_tests GTest::gtest_main ${PCL_LIBRARIES})
+    add_executable(ikd_tree_tests tests/test_ikd_tree.cpp)
+    target_link_libraries(ikd_tree_tests PRIVATE ikd_tree::ikd_tree GTest::gtest_main)
     add_test(NAME ikd_tree_tests COMMAND ikd_tree_tests)
 endif()
 
-option(BUILD_BENCHMARKS "Build kNN benchmarks" OFF)
 if(BUILD_BENCHMARKS)
     find_package(benchmark REQUIRED)
-    add_executable(ikd_tree_bench bench/bench_ikd_tree.cpp ikd_tree/ikd_tree.cpp)
-    target_include_directories(ikd_tree_bench PRIVATE ${PCL_INCLUDE_DIRS} ikd_tree)
-    target_link_libraries(ikd_tree_bench benchmark::benchmark_main ${PCL_LIBRARIES})
+    add_executable(ikd_tree_bench bench/bench_ikd_tree.cpp)
+    target_link_libraries(ikd_tree_bench PRIVATE ikd_tree::ikd_tree benchmark::benchmark_main)
 endif()
 
-install(FILES ikd_tree/ikd_tree.h DESTINATION include/ikd_tree)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+install(TARGETS ikd_tree
+    EXPORT ikd_treeTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(FILES ikd_tree/ikd_tree.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ikd_tree
+)
+
+install(EXPORT ikd_treeTargets
+    NAMESPACE ikd_tree::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ikd_tree
+    FILE ikd_treeTargets.cmake
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/ikd_treeConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ikd_treeConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/ikd_treeConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ikd_tree
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/ikd_treeConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/ikd_treeConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ikd_tree
+)

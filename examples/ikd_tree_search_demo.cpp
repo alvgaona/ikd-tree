@@ -2,7 +2,7 @@
     Description: An example to introduce box search and radius search using ikd-Tree
     Author: Hyungtae Lim, Yixi Cai
 */
-#include "ikd_tree.h"
+#include <ikd_tree/ikd_tree.h>
 #include <stdio.h>
 #include <vector>
 #include "pcl/point_types.h"
@@ -13,12 +13,12 @@ using namespace std;
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 
+using namespace ikd_tree;
 
 using PointType = pcl::PointXYZ;
 using PointVector = KD_TREE<PointType>::PointVector;
-template class KD_TREE<pcl::PointXYZ>;
 
-void colorize( const PointVector &pc, pcl::PointCloud<pcl::PointXYZRGB> &pc_colored, const std::vector<int> &color) {
+void colorize(const PointVector &pc, pcl::PointCloud<pcl::PointXYZRGB> &pc_colored, const std::vector<int> &color) {
     int N = pc.size();
 
     pc_colored.clear();
@@ -49,8 +49,7 @@ void generate_box(BoxPointType &boxpoint, const PointType &center_pt, vector<flo
     boxpoint.vertex_max[2] = center_pt.z + z_dist;
 }
 
-float test_dist(PointType a, PointType b)
-{
+float test_dist(PointType a, PointType b) {
     float dist = 0.0f;
     dist = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z);
     return dist;
@@ -59,14 +58,14 @@ float test_dist(PointType a, PointType b)
 int main(int argc, char **argv) {
     /*** 1. Initialize k-d tree */
     KD_TREE<PointType>::Ptr kdtree_ptr(new KD_TREE<PointType>(0.3, 0.6, 0.2));
-    KD_TREE<PointType>      &ikd_Tree        = *kdtree_ptr;
+    KD_TREE<PointType> &ikd_Tree = *kdtree_ptr;
 
     /*** 2. Load point cloud data */
     pcl::PointCloud<PointType>::Ptr src(new pcl::PointCloud<PointType>);
     string filename = "../materials/hku_demo_pointcloud.pcd";
     if (pcl::io::loadPCDFile<PointType>(filename, *src) == -1) //* load the file
     {
-        PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
+        PCL_ERROR("Couldn't read file test_pcd.pcd \n");
         return (-1);
     }
     printf("Original: %d points are loaded\n", static_cast<int>(src->points.size()));
@@ -74,7 +73,7 @@ int main(int argc, char **argv) {
     /*** 3. Build ikd-Tree */
     auto start = chrono::high_resolution_clock::now();
     ikd_Tree.Build((*src).points);
-    auto end      = chrono::high_resolution_clock::now();
+    auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Building tree takes: %0.3f ms\n", float(duration) / 1e3);
     printf("# of valid points: %d \n", ikd_Tree.validnum());
@@ -90,9 +89,10 @@ int main(int argc, char **argv) {
     start = chrono::high_resolution_clock::now();
     PointVector Searched_Points;
     ikd_Tree.Box_Search(boxpoint, Searched_Points);
-    end  = chrono::high_resolution_clock::now();
+    end = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
-    printf("Search Points by box takes: %0.3f ms with %d points\n", float(duration) / 1e3, static_cast<int>(Searched_Points.size()));
+    printf("Search Points by box takes: %0.3f ms with %d points\n", float(duration) / 1e3,
+           static_cast<int>(Searched_Points.size()));
 
     /*** 5. Set a ball region and search using radius search */
     PointType ball_center_pt;
@@ -105,7 +105,8 @@ int main(int argc, char **argv) {
     ikd_Tree.Radius_Search(ball_center_pt, radius, Searched_Points_radius);
     end = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
-    printf("Search Points by radius takes: %0.3f ms with %d points\n", float(duration) / 1e3, int(Searched_Points_radius.size()));
+    printf("Search Points by radius takes: %0.3f ms with %d points\n", float(duration) / 1e3,
+           int(Searched_Points_radius.size()));
 
     /*** Below codes are just for visualization */
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr src_colored(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -117,18 +118,18 @@ int main(int argc, char **argv) {
     colorize(Searched_Points_radius, *searched_radius_colored, {255, 0, 0});
 
     pcl::visualization::PCLVisualizer viewer0("Box Search");
-    viewer0.addPointCloud<PointType>(src,src_color, "src");
+    viewer0.addPointCloud<PointType>(src, src_color, "src");
     viewer0.addPointCloud<pcl::PointXYZRGB>(searched_colored, "searched");
-    viewer0.setCameraPosition(-5, 30, 175,  0, 0, 0, 0.2, -1.0, 0.2);
+    viewer0.setCameraPosition(-5, 30, 175, 0, 0, 0, 0.2, -1.0, 0.2);
     viewer0.setSize(1600, 900);
 
     pcl::visualization::PCLVisualizer viewer1("Radius Search");
-    viewer1.addPointCloud<PointType>(src,src_color, "src");
+    viewer1.addPointCloud<PointType>(src, src_color, "src");
     viewer1.addPointCloud<pcl::PointXYZRGB>(searched_radius_colored, "radius");
-    viewer1.setCameraPosition(-5, 30, 175,  0, 0, 0, 0.2, -1.0, 0.2);
+    viewer1.setCameraPosition(-5, 30, 175, 0, 0, 0, 0.2, -1.0, 0.2);
     viewer1.setSize(1600, 900);
-             
-    while (!viewer0.wasStopped() && !viewer1.wasStopped()){
+
+    while (!viewer0.wasStopped() && !viewer1.wasStopped()) {
         viewer0.spinOnce();
         viewer1.spinOnce();
     }

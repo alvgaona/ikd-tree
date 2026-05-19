@@ -22,3 +22,33 @@ jobs:
 
       - name: Run tests
         run: pixi run test
+
+      - name: Smoke-run benchmark
+        run: pixi run bench
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+
+      - name: Run tests under AddressSanitizer + UBSan
+        run: pixi run test-asan
+
+      - name: Run tests under ThreadSanitizer
+        run: pixi run test-tsan
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: latest
+
+      - name: Check clang-format compliance
+        run: pixi run format-check

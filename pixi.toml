@@ -13,12 +13,24 @@ benchmark = "*"
 cmake = ">=3.15"
 ninja = "*"
 cxx-compiler = "*"
+clang-format = ">=19"
 
 [tasks]
 configure = { cmd = "cmake -B build -S . -DBUILD_TESTING=ON -DBUILD_BENCHMARKS=ON -DCMAKE_BUILD_TYPE=Release" }
 build-tests = { cmd = "cmake --build build --parallel", depends-on = ["configure"] }
 test = { cmd = "ctest --test-dir build --output-on-failure", depends-on = ["build-tests"] }
 bench = { cmd = "./build/ikd_tree_bench --benchmark_min_time=0.5s", depends-on = ["build-tests"] }
+
+configure-asan = { cmd = "cmake -B build-asan -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer -O1' -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'" }
+build-asan = { cmd = "cmake --build build-asan --parallel", depends-on = ["configure-asan"] }
+test-asan = { cmd = "ctest --test-dir build-asan --output-on-failure", depends-on = ["build-asan"] }
+
+configure-tsan = { cmd = "cmake -B build-tsan -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='-fsanitize=thread -fno-omit-frame-pointer -O1' -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=thread'" }
+build-tsan = { cmd = "cmake --build build-tsan --parallel", depends-on = ["configure-tsan"] }
+test-tsan = { cmd = "ctest --test-dir build-tsan --output-on-failure", depends-on = ["build-tsan"] }
+
+format-check = { cmd = "clang-format --dry-run --Werror ikd_tree/*.h ikd_tree/*.cpp tests/*.cpp bench/*.cpp examples/*.cpp" }
+format = { cmd = "clang-format -i ikd_tree/*.h ikd_tree/*.cpp tests/*.cpp bench/*.cpp examples/*.cpp" }
 
 [package]
 name = "ikd-tree"

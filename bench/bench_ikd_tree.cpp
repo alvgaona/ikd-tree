@@ -1,10 +1,10 @@
 #include <benchmark/benchmark.h>
-#include "ikd_tree.h"
+#include <ikd_tree/ikd_tree.h>
 
 #include <random>
 
-using Point = ikdTree_PointType;
-using Tree = KD_TREE<Point>;
+using Point = ikd_tree::ikdTree_PointType;
+using Tree = ikd_tree::KD_TREE<Point>;
 using PointVector = Tree::PointVector;
 
 static PointVector make_random_cloud(int n, uint32_t seed, float spread = 100.0f) {
@@ -12,7 +12,8 @@ static PointVector make_random_cloud(int n, uint32_t seed, float spread = 100.0f
     pts.reserve(n);
     std::mt19937 rng(seed);
     std::uniform_real_distribution<float> u(-spread, spread);
-    for (int i = 0; i < n; ++i) pts.push_back(Point(u(rng), u(rng), u(rng)));
+    for (int i = 0; i < n; ++i)
+        pts.push_back(Point(u(rng), u(rng), u(rng)));
     return pts;
 }
 
@@ -31,7 +32,8 @@ static void BM_NearestSearch(benchmark::State &state) {
     constexpr int Q = 256;
     std::vector<Point> queries;
     queries.reserve(Q);
-    for (int i = 0; i < Q; ++i) queries.push_back(Point(u(rng), u(rng), u(rng)));
+    for (int i = 0; i < Q; ++i)
+        queries.push_back(Point(u(rng), u(rng), u(rng)));
 
     PointVector results;
     std::vector<float> dists;
@@ -48,9 +50,7 @@ static void BM_NearestSearch(benchmark::State &state) {
 }
 
 // Cloud sizes from small to large; k from typical robotics values.
-BENCHMARK(BM_NearestSearch)
-    ->ArgsProduct({{100, 1000, 10000, 100000}, {1, 5, 10, 30}})
-    ->Unit(benchmark::kMicrosecond);
+BENCHMARK(BM_NearestSearch)->ArgsProduct({{100, 1000, 10000, 100000}, {1, 5, 10, 30}})->Unit(benchmark::kMicrosecond);
 
 // Build benchmark across cloud sizes.
 static void BM_Build(benchmark::State &state) {
@@ -61,7 +61,7 @@ static void BM_Build(benchmark::State &state) {
         tree.Build(cloud);
         benchmark::DoNotOptimize(tree);
     }
-    state.SetItemsProcessed(state.iterations() * (int64_t)n);
+    state.SetItemsProcessed(state.iterations() * (int64_t) n);
     state.counters["N"] = n;
 }
 
