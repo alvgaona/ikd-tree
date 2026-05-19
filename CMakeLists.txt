@@ -7,10 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(BUILD_EXAMPLES "Build example executables" OFF)
+option(BUILD_EXAMPLES "Build the lightweight example executable" OFF)
+option(BUILD_VISUALIZATION_EXAMPLES "Build PCL-visualization-based demos (requires PCL visualization + io)" OFF)
 option(BUILD_BENCHMARKS "Build kNN benchmarks" OFF)
 
-find_package(PCL 1.8 REQUIRED)
+# The library itself only needs pcl::point_types; requesting just `common`
+# avoids pulling Qt6 / VTK into the configure step on systems where those
+# PCL components are not fully packaged.
+find_package(PCL 1.8 REQUIRED COMPONENTS common)
 find_package(Threads REQUIRED)
 
 # Workaround: conda-forge's boost_headers-config.cmake hardcodes
@@ -47,14 +51,18 @@ target_link_libraries(ikd_tree PUBLIC ${PCL_LIBRARIES} Threads::Threads)
 if(BUILD_EXAMPLES)
     add_executable(ikd_tree_demo examples/ikd_tree_demo.cpp)
     target_link_libraries(ikd_tree_demo PRIVATE ikd_tree::ikd_tree)
+    install(TARGETS ikd_tree_demo RUNTIME DESTINATION bin)
+endif()
 
+if(BUILD_VISUALIZATION_EXAMPLES)
+    find_package(PCL 1.8 REQUIRED COMPONENTS io visualization)
     add_executable(ikd_tree_async_demo examples/ikd_tree_async_demo.cpp)
-    target_link_libraries(ikd_tree_async_demo PRIVATE ikd_tree::ikd_tree)
+    target_link_libraries(ikd_tree_async_demo PRIVATE ikd_tree::ikd_tree ${PCL_LIBRARIES})
 
     add_executable(ikd_tree_search_demo examples/ikd_tree_search_demo.cpp)
-    target_link_libraries(ikd_tree_search_demo PRIVATE ikd_tree::ikd_tree)
+    target_link_libraries(ikd_tree_search_demo PRIVATE ikd_tree::ikd_tree ${PCL_LIBRARIES})
 
-    install(TARGETS ikd_tree_demo ikd_tree_async_demo ikd_tree_search_demo
+    install(TARGETS ikd_tree_async_demo ikd_tree_search_demo
         RUNTIME DESTINATION bin
     )
 endif()
