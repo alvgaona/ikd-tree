@@ -25,13 +25,14 @@ enum operation_set { ADD_POINT, DELETE_POINT, DELETE_BOX, ADD_BOX, DOWNSAMPLE_DE
 
 enum delete_point_storage_set { NOT_RECORD, DELETE_POINTS_REC, MULTI_THREAD_REC };
 
-// Fixed-capacity ring buffer used by the rebuild logger. Capacity is set at
-// construction (see KdTree rebuild_log_capacity ctor param). Overflow
-// silently overwrites the oldest entry (pre-existing behaviour); raise the
-// capacity if your workload bursts more ops than fit during a rebuild.
+// Fixed-capacity ring buffer used by the rebuild logger. The default
+// matches upstream (hku-mars/ikd-Tree) so this fork is a drop-in
+// replacement; pass `rebuild_log_capacity` to KdTree() to shrink it for
+// memory-constrained deployments. Overflow silently overwrites the oldest
+// entry.
 template <typename T> class MANUAL_Q {
   public:
-    static constexpr int kDefaultCapacity = 4096;
+    static constexpr int kDefaultCapacity = 1000000;
 
     explicit MANUAL_Q(int capacity = kDefaultCapacity) : cap_(capacity), q(new T[capacity]) {}
     ~MANUAL_Q() { delete[] q; }
