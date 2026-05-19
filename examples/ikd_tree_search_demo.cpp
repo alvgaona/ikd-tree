@@ -16,7 +16,7 @@ using namespace std;
 using namespace ikd_tree;
 
 using PointType = pcl::PointXYZ;
-using PointVector = KD_TREE<PointType>::PointVector;
+using PointVector = KdTree<PointType>::PointVector;
 
 void colorize(const PointVector &pc, pcl::PointCloud<pcl::PointXYZRGB> &pc_colored, const std::vector<int> &color) {
     int N = pc.size();
@@ -57,8 +57,8 @@ float test_dist(PointType a, PointType b) {
 
 int main(int argc, char **argv) {
     /*** 1. Initialize k-d tree */
-    KD_TREE<PointType>::Ptr kdtree_ptr(new KD_TREE<PointType>(0.3, 0.6, 0.2));
-    KD_TREE<PointType> &ikd_Tree = *kdtree_ptr;
+    KdTree<PointType>::Ptr kdtree_ptr(new KdTree<PointType>(0.3, 0.6, 0.2));
+    KdTree<PointType> &ikd_Tree = *kdtree_ptr;
 
     /*** 2. Load point cloud data */
     pcl::PointCloud<PointType>::Ptr src(new pcl::PointCloud<PointType>);
@@ -70,9 +70,9 @@ int main(int argc, char **argv) {
     }
     printf("Original: %d points are loaded\n", static_cast<int>(src->points.size()));
 
-    /*** 3. Build ikd-Tree */
+    /*** 3. build ikd-Tree */
     auto start = chrono::high_resolution_clock::now();
-    ikd_Tree.Build((*src).points);
+    ikd_Tree.build((*src).points);
     auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Building tree takes: %0.3f ms\n", float(duration) / 1e3);
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 
     start = chrono::high_resolution_clock::now();
     PointVector Searched_Points;
-    ikd_Tree.Box_Search(boxpoint, Searched_Points);
+    ikd_Tree.box_search(boxpoint, Searched_Points);
     end = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Search Points by box takes: %0.3f ms with %d points\n", float(duration) / 1e3,
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     float radius = 7.5;
     start = chrono::high_resolution_clock::now();
     PointVector Searched_Points_radius;
-    ikd_Tree.Radius_Search(ball_center_pt, radius, Searched_Points_radius);
+    ikd_Tree.radius_search(ball_center_pt, radius, Searched_Points_radius);
     end = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Search Points by radius takes: %0.3f ms with %d points\n", float(duration) / 1e3,

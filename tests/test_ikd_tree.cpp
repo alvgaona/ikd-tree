@@ -8,7 +8,7 @@
 #include <vector>
 
 using Point = ikd_tree::ikdTree_PointType;
-using Tree = ikd_tree::KD_TREE<Point>;
+using Tree = ikd_tree::KdTree<Point>;
 using PointVector = Tree::PointVector;
 using BoxPointType = ikd_tree::BoxPointType;
 
@@ -35,7 +35,7 @@ class IkdTreeTest : public ::testing::Test {
 
     void SetUp() override {
         PointVector pts = make_grid(5);
-        tree.Build(pts);
+        tree.build(pts);
     }
 };
 
@@ -50,7 +50,7 @@ TEST_F(IkdTreeTest, ValidnumEqualsSize) {
 TEST_F(IkdTreeTest, NearestSearchFindsExactPoint) {
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(2.0f, 2.0f, 2.0f), 1, results, dists);
+    tree.nearest_search(make_point(2.0f, 2.0f, 2.0f), 1, results, dists);
 
     ASSERT_EQ(results.size(), 1u);
     EXPECT_NEAR(results[0].x, 2.0f, 1e-5f);
@@ -62,7 +62,7 @@ TEST_F(IkdTreeTest, NearestSearchFindsExactPoint) {
 TEST_F(IkdTreeTest, NearestSearchResultsAreOrdered) {
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(0.1f, 0.1f, 0.1f), 5, results, dists);
+    tree.nearest_search(make_point(0.1f, 0.1f, 0.1f), 5, results, dists);
 
     ASSERT_EQ(results.size(), 5u);
     for (size_t i = 1; i < dists.size(); ++i)
@@ -72,7 +72,7 @@ TEST_F(IkdTreeTest, NearestSearchResultsAreOrdered) {
 TEST_F(IkdTreeTest, NearestSearchRespectsMaxDist) {
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(0.0f, 0.0f, 0.0f), 10, results, dists, 0.5);
+    tree.nearest_search(make_point(0.0f, 0.0f, 0.0f), 10, results, dists, 0.5);
 
     for (float d : dists)
         EXPECT_LE(d, 0.5f);
@@ -81,7 +81,7 @@ TEST_F(IkdTreeTest, NearestSearchRespectsMaxDist) {
 TEST_F(IkdTreeTest, NearestSearchKLargerThanTree) {
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(0.0f, 0.0f, 0.0f), 1000, results, dists);
+    tree.nearest_search(make_point(0.0f, 0.0f, 0.0f), 1000, results, dists);
 
     EXPECT_EQ((int) results.size(), tree.size());
 }
@@ -98,7 +98,7 @@ TEST_F(IkdTreeTest, BoxSearchReturnsPointsInBox) {
     box.vertex_max[2] = 3.1f;
 
     PointVector results;
-    tree.Box_Search(box, results);
+    tree.box_search(box, results);
 
     EXPECT_EQ(results.size(), 27u);
     for (const auto &p : results) {
@@ -116,7 +116,7 @@ TEST_F(IkdTreeTest, RadiusSearchReturnsPointsWithinRadius) {
     float radius = 1.5f;
 
     PointVector results;
-    tree.Radius_Search(center, radius, results);
+    tree.radius_search(center, radius, results);
 
     for (const auto &p : results)
         EXPECT_LE(dist(p, center), radius + 1e-5f);
@@ -127,7 +127,7 @@ TEST_F(IkdTreeTest, RadiusSearchDoesNotMissPoints) {
     float radius = 1.0f;
 
     PointVector results;
-    tree.Radius_Search(center, radius, results);
+    tree.radius_search(center, radius, results);
 
     EXPECT_TRUE(results.size() >= 7u);
 }
@@ -135,18 +135,18 @@ TEST_F(IkdTreeTest, RadiusSearchDoesNotMissPoints) {
 TEST_F(IkdTreeTest, AddPointsIncreasesSize) {
     int before = tree.size();
     PointVector new_pts = {make_point(10.0f, 10.0f, 10.0f), make_point(11.0f, 11.0f, 11.0f)};
-    tree.Add_Points(new_pts, false);
+    tree.add_points(new_pts, false);
 
     EXPECT_EQ(tree.size(), before + 2);
 }
 
 TEST_F(IkdTreeTest, AddedPointIsSearchable) {
     PointVector new_pts = {make_point(99.0f, 99.0f, 99.0f)};
-    tree.Add_Points(new_pts, false);
+    tree.add_points(new_pts, false);
 
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(99.0f, 99.0f, 99.0f), 1, results, dists);
+    tree.nearest_search(make_point(99.0f, 99.0f, 99.0f), 1, results, dists);
 
     ASSERT_EQ(results.size(), 1u);
     EXPECT_NEAR(results[0].x, 99.0f, 1e-5f);
@@ -158,22 +158,22 @@ TEST_F(IkdTreeTest, DeletePointsDecreasesValidnum) {
     // traversal finds the exact node (avoids ambiguity when multiple
     // points share a coordinate with a pivot).
     PointVector to_add = {make_point(100.0f, 100.0f, 100.0f)};
-    tree.Add_Points(to_add, false);
+    tree.add_points(to_add, false);
     int after_add = tree.validnum();
 
-    tree.Delete_Points(to_add);
+    tree.delete_points(to_add);
     EXPECT_EQ(tree.validnum(), after_add - 1);
 }
 
 TEST_F(IkdTreeTest, DeletedPointNotReturnedInNearestSearch) {
     PointVector to_add = {make_point(100.0f, 100.0f, 100.0f)};
-    tree.Add_Points(to_add, false);
+    tree.add_points(to_add, false);
 
-    tree.Delete_Points(to_add);
+    tree.delete_points(to_add);
 
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(100.0f, 100.0f, 100.0f), 1, results, dists);
+    tree.nearest_search(make_point(100.0f, 100.0f, 100.0f), 1, results, dists);
 
     ASSERT_EQ(results.size(), 1u);
     EXPECT_GT(dists[0], 0.0f);
@@ -192,14 +192,14 @@ TEST_F(IkdTreeTest, DeletePointsHandlesPivotEqualCoordinates) {
         make_point(2.0f, 0.0f, 4.0f),
     };
     int before = tree.validnum();
-    tree.Delete_Points(to_del);
+    tree.delete_points(to_del);
     EXPECT_EQ(tree.validnum(), before - (int) to_del.size());
 
     // Each deleted point should no longer be the nearest match.
     for (const auto &p : to_del) {
         PointVector results;
         std::vector<float> dists;
-        tree.Nearest_Search(p, 1, results, dists);
+        tree.nearest_search(p, 1, results, dists);
         ASSERT_EQ(results.size(), 1u);
         EXPECT_GT(dists[0], 0.0f);
     }
@@ -215,7 +215,7 @@ TEST_F(IkdTreeTest, DeleteBoxRemovesPointsInRegion) {
     boxes[0].vertex_max[1] = 0.1f;
     boxes[0].vertex_min[2] = -0.1f;
     boxes[0].vertex_max[2] = 0.1f;
-    tree.Delete_Point_Boxes(boxes);
+    tree.delete_point_boxes(boxes);
 
     EXPECT_LT(tree.validnum(), before);
 }
@@ -247,7 +247,7 @@ TEST_F(IkdTreeTest, AcquireRemovedPointsAfterBoxDelete) {
     boxes[0].vertex_max[1] = 1.1f;
     boxes[0].vertex_min[2] = -0.1f;
     boxes[0].vertex_max[2] = 1.1f;
-    tree.Delete_Point_Boxes(boxes);
+    tree.delete_point_boxes(boxes);
 
     PointVector removed;
     tree.acquire_removed_points(removed);
@@ -270,7 +270,7 @@ TEST_F(IkdTreeTest, AcquireRemovedPointsClearsBuffer) {
     boxes[0].vertex_max[1] = 1.1f;
     boxes[0].vertex_min[2] = -0.1f;
     boxes[0].vertex_max[2] = 1.1f;
-    tree.Delete_Point_Boxes(boxes);
+    tree.delete_point_boxes(boxes);
 
     PointVector first;
     tree.acquire_removed_points(first);
@@ -279,11 +279,11 @@ TEST_F(IkdTreeTest, AcquireRemovedPointsClearsBuffer) {
     EXPECT_TRUE(second.empty());
 }
 
-// Add_Point_Boxes re-validates soft-deleted points within a box region. Three
+// add_point_boxes re-validates soft-deleted points within a box region. Three
 // semantic properties:
 //
-//   1. Single-point revival after Delete_Points.
-//   2. Whole-region revival after Delete_Point_Boxes (regression test for the
+//   1. Single-point revival after delete_points.
+//   2. Whole-region revival after delete_point_boxes (regression test for the
 //      node-range shrinkage bug — Update() now preserves the full bbox of
 //      every subtree so the recursion can still find revivable nodes).
 //   3. No-op on empty regions.
@@ -291,35 +291,38 @@ TEST_F(IkdTreeTest, AcquireRemovedPointsClearsBuffer) {
 TEST(IkdTreeAddBoxes, RevivesWholeBoxAfterBoxDelete) {
     Tree t(0.99f, 0.99f, 0.2f);
     PointVector pts = make_grid(5);
-    t.Build(pts);
+    t.build(pts);
     int before = t.validnum();
 
     std::vector<BoxPointType> boxes(1);
-    boxes[0].vertex_min[0] = -0.1f; boxes[0].vertex_max[0] = 2.1f;
-    boxes[0].vertex_min[1] = -0.1f; boxes[0].vertex_max[1] = 2.1f;
-    boxes[0].vertex_min[2] = -0.1f; boxes[0].vertex_max[2] = 2.1f;
+    boxes[0].vertex_min[0] = -0.1f;
+    boxes[0].vertex_max[0] = 2.1f;
+    boxes[0].vertex_min[1] = -0.1f;
+    boxes[0].vertex_max[1] = 2.1f;
+    boxes[0].vertex_min[2] = -0.1f;
+    boxes[0].vertex_max[2] = 2.1f;
 
-    t.Delete_Point_Boxes(boxes);
+    t.delete_point_boxes(boxes);
     EXPECT_EQ(t.validnum(), before - 27);
 
-    t.Add_Point_Boxes(boxes);
+    t.add_point_boxes(boxes);
     EXPECT_EQ(t.validnum(), before);
 
     PointVector revived;
-    t.Box_Search(boxes[0], revived);
+    t.box_search(boxes[0], revived);
     EXPECT_EQ(revived.size(), 27u);
 }
 
 TEST(IkdTreeAddBoxes, RevivesSinglePointAfterPointDelete) {
     // 0.99 thresholds keep the rebuild from physically pruning the deleted
-    // node, so Add_Point_Boxes can still find and revive it.
+    // node, so add_point_boxes can still find and revive it.
     Tree t(0.99f, 0.99f, 0.2f);
     PointVector pts = make_grid(5);
-    t.Build(pts);
+    t.build(pts);
     int before = t.validnum();
 
     PointVector to_del = {make_point(2.0f, 2.0f, 2.0f)};
-    t.Delete_Points(to_del);
+    t.delete_points(to_del);
     EXPECT_EQ(t.validnum(), before - 1);
 
     std::vector<BoxPointType> boxes(1);
@@ -329,11 +332,11 @@ TEST(IkdTreeAddBoxes, RevivesSinglePointAfterPointDelete) {
     boxes[0].vertex_max[1] = 2.1f;
     boxes[0].vertex_min[2] = 1.9f;
     boxes[0].vertex_max[2] = 2.1f;
-    t.Add_Point_Boxes(boxes);
+    t.add_point_boxes(boxes);
 
     EXPECT_EQ(t.validnum(), before);
     PointVector found;
-    t.Box_Search(boxes[0], found);
+    t.box_search(boxes[0], found);
     ASSERT_EQ(found.size(), 1u);
     EXPECT_NEAR(found[0].x, 2.0f, 1e-5f);
     EXPECT_NEAR(found[0].y, 2.0f, 1e-5f);
@@ -349,7 +352,7 @@ TEST_F(IkdTreeTest, AddPointBoxesNoOpOnEmptyTreeRegion) {
     boxes[0].vertex_max[1] = 200.0f;
     boxes[0].vertex_min[2] = 100.0f;
     boxes[0].vertex_max[2] = 200.0f;
-    tree.Add_Point_Boxes(boxes);
+    tree.add_point_boxes(boxes);
     EXPECT_EQ(tree.validnum(), before);
     EXPECT_EQ(tree.size(), before);
 }
@@ -363,27 +366,28 @@ TEST_F(IkdTreeTest, AddPointsWithDownsamplingLimitsDensity) {
     PointVector cluster;
     for (int i = 0; i < 10; ++i)
         cluster.push_back(make_point(50.0f + 0.1f * i, 50.0f, 50.0f));
-    tree.Add_Points(cluster, true);
+    tree.add_points(cluster, true);
     EXPECT_LT(tree.size() - before, 10);
 }
 
 TEST(IkdTreeConfigTest, ConstructorWithCustomParams) {
     Tree custom_tree(0.3f, 0.7f, 0.5f);
     PointVector pts = make_grid(3);
-    custom_tree.Build(pts);
+    custom_tree.build(pts);
     EXPECT_EQ(custom_tree.size(), 27);
 }
 
 TEST(IkdTreeConfigTest, ConstructorWithCustomRebuildLogCapacity) {
     Tree custom_tree(0.5f, 0.7f, 0.2f, /*rebuild_log_capacity=*/256);
     PointVector pts = make_grid(5);
-    custom_tree.Build(pts);
+    custom_tree.build(pts);
     PointVector extra;
-    for (int i = 0; i < 100; ++i) extra.push_back(make_point(10.0f + i, 0, 0));
-    custom_tree.Add_Points(extra, false);
+    for (int i = 0; i < 100; ++i)
+        extra.push_back(make_point(10.0f + i, 0, 0));
+    custom_tree.add_points(extra, false);
     PointVector r;
     std::vector<float> d;
-    custom_tree.Nearest_Search(make_point(50.0f, 0, 0), 1, r, d);
+    custom_tree.nearest_search(make_point(50.0f, 0, 0), 1, r, d);
     ASSERT_EQ(r.size(), 1u);
     EXPECT_NEAR(r[0].x, 50.0f, 1e-5f);
 }
@@ -392,10 +396,12 @@ TEST(IkdManualQ, RespectsConfiguredCapacity) {
     ikd_tree::MANUAL_Q<int> q(8);
     EXPECT_EQ(q.capacity(), 8);
     EXPECT_TRUE(q.empty());
-    for (int i = 0; i < 8; ++i) q.push(i);
+    for (int i = 0; i < 8; ++i)
+        q.push(i);
     EXPECT_EQ(q.size(), 8);
     EXPECT_EQ(q.front(), 0);
-    for (int i = 0; i < 8; ++i) q.pop();
+    for (int i = 0; i < 8; ++i)
+        q.pop();
     EXPECT_TRUE(q.empty());
 }
 
@@ -406,16 +412,16 @@ TEST(IkdManualQ, DefaultCapacityMatchesConstant) {
 
 TEST(IkdTreeConfigTest, InitializeKDTreeSetsParams) {
     Tree t;
-    t.InitializeKDTree(0.4f, 0.8f, 0.3f);
+    t.initialize(0.4f, 0.8f, 0.3f);
     PointVector pts = make_grid(3);
-    t.Build(pts);
+    t.build(pts);
     EXPECT_EQ(t.size(), 27);
 }
 
 TEST(IkdTreeConfigTest, SettersDoNotCrashOnEmptyTree) {
     Tree t;
-    t.Set_delete_criterion_param(0.3f);
-    t.Set_balance_criterion_param(0.7f);
+    t.set_delete_criterion_param(0.3f);
+    t.set_balance_criterion_param(0.7f);
     t.set_downsample_param(0.5f);
     EXPECT_EQ(t.size(), 0);
 }
@@ -423,7 +429,7 @@ TEST(IkdTreeConfigTest, SettersDoNotCrashOnEmptyTree) {
 TEST(IkdTreeEmptyTest, BuildEmptyCloud) {
     Tree tree;
     PointVector empty;
-    tree.Build(empty);
+    tree.build(empty);
     EXPECT_EQ(tree.size(), 0);
 }
 
@@ -431,7 +437,7 @@ TEST(IkdTreeEmptyTest, SearchOnEmptyTree) {
     Tree tree;
     PointVector results;
     std::vector<float> dists;
-    tree.Nearest_Search(make_point(0.0f, 0.0f, 0.0f), 5, results, dists);
+    tree.nearest_search(make_point(0.0f, 0.0f, 0.0f), 5, results, dists);
     EXPECT_TRUE(results.empty());
 }
 
@@ -480,7 +486,7 @@ TEST_P(IkdTreeKnnReferenceTest, MatchesBruteForceOnRandomCloud) {
     int k = GetParam();
     PointVector cloud = make_random_cloud(2000, 42);
     Tree tree;
-    tree.Build(cloud);
+    tree.build(cloud);
 
     std::mt19937 rng(7);
     std::uniform_real_distribution<float> u(-150.0f, 150.0f);
@@ -490,7 +496,7 @@ TEST_P(IkdTreeKnnReferenceTest, MatchesBruteForceOnRandomCloud) {
 
         PointVector knn_pts;
         std::vector<float> knn_d;
-        tree.Nearest_Search(query, k, knn_pts, knn_d);
+        tree.nearest_search(query, k, knn_pts, knn_d);
 
         auto truth = brute_force_knn(cloud, query, k);
 
@@ -506,7 +512,7 @@ INSTANTIATE_TEST_SUITE_P(VariousK, IkdTreeKnnReferenceTest, ::testing::Values(1,
 TEST(IkdTreeKnnReference, MatchesBruteForceWithMaxDist) {
     PointVector cloud = make_random_cloud(1000, 99);
     Tree tree;
-    tree.Build(cloud);
+    tree.build(cloud);
 
     std::mt19937 rng(123);
     std::uniform_real_distribution<float> u(-150.0f, 150.0f);
@@ -517,7 +523,7 @@ TEST(IkdTreeKnnReference, MatchesBruteForceWithMaxDist) {
 
         PointVector knn_pts;
         std::vector<float> knn_d;
-        tree.Nearest_Search(query, 20, knn_pts, knn_d, max_dist);
+        tree.nearest_search(query, 20, knn_pts, knn_d, max_dist);
 
         auto truth = brute_force_knn(cloud, query, 20, max_dist);
 
@@ -531,10 +537,10 @@ TEST(IkdTreeKnnReference, MatchesBruteForceWithMaxDist) {
 TEST(IkdTreeKnnReference, MatchesBruteForceAfterIncrementalAddDelete) {
     PointVector cloud = make_random_cloud(500, 11);
     Tree tree;
-    tree.Build(cloud);
+    tree.build(cloud);
 
     PointVector to_add = make_random_cloud(500, 22, 80.0f);
-    tree.Add_Points(to_add, false);
+    tree.add_points(to_add, false);
     PointVector full = cloud;
     full.insert(full.end(), to_add.begin(), to_add.end());
 
@@ -545,7 +551,7 @@ TEST(IkdTreeKnnReference, MatchesBruteForceAfterIncrementalAddDelete) {
         Point query(u(rng), u(rng), u(rng));
         PointVector knn_pts;
         std::vector<float> knn_d;
-        tree.Nearest_Search(query, 10, knn_pts, knn_d);
+        tree.nearest_search(query, 10, knn_pts, knn_d);
 
         auto truth = brute_force_knn(full, query, 10);
 
@@ -580,7 +586,7 @@ TEST_F(IkdTreeTest, FlattenReturnsEveryLivePoint) {
 
 TEST_F(IkdTreeTest, FlattenSkipsDeletedPoints) {
     PointVector to_del = {make_point(0.0f, 0.0f, 0.0f), make_point(4.0f, 4.0f, 4.0f)};
-    tree.Delete_Points(to_del);
+    tree.delete_points(to_del);
 
     PointVector out;
     tree.flatten(out);
@@ -611,7 +617,7 @@ TEST(IkdTreeEmptyTest, FlattenEmptyTreeYieldsEmpty) {
 //
 // Multi_Thread_Rebuild_Point_Num is 1500 inside ikd_tree.cpp; subtrees above
 // that threshold are rebuilt on the background pthread. The test grows the
-// tree well past the threshold in batches, runs Nearest_Search against a
+// tree well past the threshold in batches, runs nearest_search against a
 // brute-force oracle between batches, and re-checks once the rebuild thread
 // has had time to settle. This exercises the concurrent search path that
 // runs while Rebuild_Ptr is non-null.
@@ -619,7 +625,7 @@ TEST(IkdTreeEmptyTest, FlattenEmptyTreeYieldsEmpty) {
 TEST(IkdTreeAsyncRebuild, NearestSearchRemainsCorrectAcrossRebuilds) {
     PointVector cloud = make_random_cloud(500, 1);
     Tree tree;
-    tree.Build(cloud);
+    tree.build(cloud);
 
     PointVector full = cloud;
     std::mt19937 rng(2);
@@ -629,14 +635,14 @@ TEST(IkdTreeAsyncRebuild, NearestSearchRemainsCorrectAcrossRebuilds) {
     const int batch_size = 800;
     for (int b = 0; b < batches; ++b) {
         PointVector batch = make_random_cloud(batch_size, 100 + b, 120.0f);
-        tree.Add_Points(batch, false);
+        tree.add_points(batch, false);
         full.insert(full.end(), batch.begin(), batch.end());
 
         for (int q = 0; q < 5; ++q) {
             Point query(u(rng), u(rng), u(rng));
             PointVector knn_pts;
             std::vector<float> knn_d;
-            tree.Nearest_Search(query, 10, knn_pts, knn_d);
+            tree.nearest_search(query, 10, knn_pts, knn_d);
 
             auto truth = brute_force_knn(full, query, 10);
             ASSERT_EQ(knn_pts.size(), truth.size()) << "batch=" << b << " query=" << q;
@@ -655,7 +661,7 @@ TEST(IkdTreeAsyncRebuild, NearestSearchRemainsCorrectAcrossRebuilds) {
         Point query(u(rng), u(rng), u(rng));
         PointVector knn_pts;
         std::vector<float> knn_d;
-        tree.Nearest_Search(query, 10, knn_pts, knn_d);
+        tree.nearest_search(query, 10, knn_pts, knn_d);
 
         auto truth = brute_force_knn(full, query, 10);
         ASSERT_EQ(knn_pts.size(), truth.size()) << "settled query=" << q;

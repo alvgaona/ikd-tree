@@ -27,7 +27,7 @@ enum operation_set { ADD_POINT, DELETE_POINT, DELETE_BOX, ADD_BOX, DOWNSAMPLE_DE
 enum delete_point_storage_set { NOT_RECORD, DELETE_POINTS_REC, MULTI_THREAD_REC };
 
 // Fixed-capacity ring buffer used by the rebuild logger. Capacity is set at
-// construction (see KD_TREE rebuild_log_capacity ctor param). Overflow
+// construction (see KdTree rebuild_log_capacity ctor param). Overflow
 // silently overwrites the oldest entry (pre-existing behaviour); raise the
 // capacity if your workload bursts more ops than fit during a rebuild.
 template <typename T> class MANUAL_Q {
@@ -46,9 +46,11 @@ template <typename T> class MANUAL_Q {
         is_empty = true;
     }
     void pop() {
-        if (counter == 0) return;
+        if (counter == 0)
+            return;
         head = (head + 1) % cap_;
-        if (--counter == 0) is_empty = true;
+        if (--counter == 0)
+            is_empty = true;
     }
     void push(T op) {
         q[tail] = std::move(op);
@@ -69,10 +71,10 @@ template <typename T> class MANUAL_Q {
     bool is_empty = true;
 };
 
-template <typename PointType> class KD_TREE {
+template <typename PointType> class KdTree {
   public:
     using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
-    using Ptr = std::shared_ptr<KD_TREE<PointType>>;
+    using Ptr = std::shared_ptr<KdTree<PointType>>;
 
   private:
     struct KD_TREE_NODE {
@@ -248,25 +250,25 @@ template <typename PointType> class KD_TREE {
     KD_TREE_NODE *Root_Node = nullptr;
 
   public:
-    KD_TREE(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2,
-            int rebuild_log_capacity = MANUAL_Q<int>::kDefaultCapacity);
-    ~KD_TREE();
-    void Set_delete_criterion_param(float delete_param);
-    void Set_balance_criterion_param(float balance_param);
+    KdTree(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2,
+           int rebuild_log_capacity = MANUAL_Q<int>::kDefaultCapacity);
+    ~KdTree();
+    void set_delete_criterion_param(float delete_param);
+    void set_balance_criterion_param(float balance_param);
     void set_downsample_param(float box_length);
-    void InitializeKDTree(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2);
+    void initialize(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2);
     int size();
     int validnum();
     void root_alpha(float &alpha_bal, float &alpha_del);
-    void Build(PointVector point_cloud);
-    void Nearest_Search(const PointType &point, int k_nearest, PointVector &Nearest_Points,
+    void build(PointVector point_cloud);
+    void nearest_search(const PointType &point, int k_nearest, PointVector &Nearest_Points,
                         std::vector<float> &Point_Distance, double max_dist = INFINITY);
-    void Box_Search(const BoxPointType &Box_of_Point, PointVector &Storage);
-    void Radius_Search(const PointType &point, const float radius, PointVector &Storage);
-    int Add_Points(PointVector &PointToAdd, bool downsample_on);
-    void Add_Point_Boxes(std::vector<BoxPointType> &BoxPoints);
-    int Delete_Points(PointVector &PointToDel);
-    int Delete_Point_Boxes(std::vector<BoxPointType> &BoxPoints);
+    void box_search(const BoxPointType &Box_of_Point, PointVector &Storage);
+    void radius_search(const PointType &point, const float radius, PointVector &Storage);
+    int add_points(PointVector &PointToAdd, bool downsample_on);
+    void add_point_boxes(std::vector<BoxPointType> &BoxPoints);
+    int delete_points(PointVector &PointToDel);
+    int delete_point_boxes(std::vector<BoxPointType> &BoxPoints);
     void flatten(PointVector &Storage);
     void acquire_removed_points(PointVector &removed_points);
     BoxPointType tree_range();

@@ -16,7 +16,7 @@ HKU-MARS, 2021).
 - pthreads
 - Eigen (transitively via PCL)
 
-## Build
+## build
 
 ### With pixi (recommended)
 
@@ -36,7 +36,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Build options:
+build options:
 
 | Option              | Default | What it enables                       |
 | ------------------- | ------- | ------------------------------------- |
@@ -50,22 +50,22 @@ Build options:
 #include <ikd_tree.h>
 
 using Point = ikd_tree::ikdTree_PointType;
-using Tree  = ikd_tree::KD_TREE<Point>;
+using Tree  = ikd_tree::KdTree<Point>;
 
 Tree tree(/*delete_param=*/0.5f, /*balance_param=*/0.7f, /*downsample=*/0.2f);
 
 Tree::PointVector cloud = /* ... fill in ... */;
-tree.Build(cloud);
+tree.build(cloud);
 
 Tree::PointVector knn;
 std::vector<float> dists;
-tree.Nearest_Search(Point(1.0f, 2.0f, 3.0f), /*k=*/10, knn, dists);
+tree.nearest_search(Point(1.0f, 2.0f, 3.0f), /*k=*/10, knn, dists);
 
 Tree::PointVector to_add = /* ... */;
-tree.Add_Points(to_add, /*downsample_on=*/true);
+tree.add_points(to_add, /*downsample_on=*/true);
 
 Tree::PointVector to_del = /* ... */;
-tree.Delete_Points(to_del);
+tree.delete_points(to_del);
 ```
 
 The class is templated; explicit instantiations are provided for `ikdTree_PointType`,
@@ -75,14 +75,14 @@ The class is templated; explicit instantiations are provided for `ikdTree_PointT
 
 | Method                                                     | Purpose                                   |
 | ---------------------------------------------------------- | ----------------------------------------- |
-| `Build(cloud)`                                             | Build the tree from a point cloud         |
-| `Add_Points(pts, downsample_on)`                           | Incrementally insert points               |
-| `Add_Point_Boxes(boxes)`                                   | Re-validate soft-deleted points in region |
-| `Delete_Points(pts)`                                       | Soft-delete points by coordinate          |
-| `Delete_Point_Boxes(boxes)`                                | Soft-delete all points in box regions     |
-| `Nearest_Search(p, k, out_pts, out_dists, max_dist?)`      | k-NN search with optional distance cap    |
-| `Box_Search(box, out_pts)`                                 | Points inside a box                       |
-| `Radius_Search(p, r, out_pts)`                             | Points within radius `r` of `p`           |
+| `build(cloud)`                                             | build the tree from a point cloud         |
+| `add_points(pts, downsample_on)`                           | Incrementally insert points               |
+| `add_point_boxes(boxes)`                                   | Re-validate soft-deleted points in region |
+| `delete_points(pts)`                                       | Soft-delete points by coordinate          |
+| `delete_point_boxes(boxes)`                                | Soft-delete all points in box regions     |
+| `nearest_search(p, k, out_pts, out_dists, max_dist?)`      | k-NN search with optional distance cap    |
+| `box_search(box, out_pts)`                                 | Points inside a box                       |
+| `radius_search(p, r, out_pts)`                             | Points within radius `r` of `p`           |
 | `flatten(out_pts)`                                         | All currently-live points                 |
 | `acquire_removed_points(out_pts)`                          | Drains the deleted-points buffer          |
 | `size()` / `validnum()`                                    | Total nodes / live point count            |

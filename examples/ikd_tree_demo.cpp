@@ -17,7 +17,7 @@ using namespace ikd_tree;
 constexpr float EPSS = 1e-6f;
 
 using PointType = ikdTree_PointType;
-using PointVector = KD_TREE<PointType>::PointVector;
+using PointVector = KdTree<PointType>::PointVector;
 
 #define X_MAX 5.0
 #define X_MIN -5.0
@@ -46,7 +46,7 @@ PointVector raw_cmp_result;
 PointVector DeletePoints;
 PointVector removed_points;
 
-KD_TREE<ikdTree_PointType> ikd_Tree(0.3, 0.6, 0.2);
+KdTree<ikdTree_PointType> ikd_Tree(0.3, 0.6, 0.2);
 
 float rand_float(float x_min, float x_max) {
     float rand_ratio = rand() / (float) RAND_MAX;
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
     // Initialize k-d tree
     generate_initial_point_cloud(Point_Num);
     auto t1 = chrono::high_resolution_clock::now();
-    ikd_Tree.Build(point_cloud);
+    ikd_Tree.build(point_cloud);
     auto t2 = chrono::high_resolution_clock::now();
     auto build_duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
     while (counter < Test_Time) {
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
         // Point-wise Insertion
         generate_increment_point_cloud(New_Point_Num);
         t1 = chrono::high_resolution_clock::now();
-        ikd_Tree.Add_Points(cloud_increment, false);
+        ikd_Tree.add_points(cloud_increment, false);
         t2 = chrono::high_resolution_clock::now();
         auto add_duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
         auto total_duration = add_duration;
@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
         // Point-wise Delete
         generate_decrement_point_cloud(Delete_Point_Num);
         t1 = chrono::high_resolution_clock::now();
-        ikd_Tree.Delete_Points(cloud_decrement);
+        ikd_Tree.delete_points(cloud_decrement);
         t2 = chrono::high_resolution_clock::now();
         auto delete_duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
         total_duration += delete_duration;
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
             printf("Waiting to generate 4 cuboids for box-wise delete test...\n");
             generate_box_decrement(Delete_Boxes, Box_Length, Box_Num);
             t1 = chrono::high_resolution_clock::now();
-            ikd_Tree.Delete_Point_Boxes(Delete_Boxes);
+            ikd_Tree.delete_point_boxes(Delete_Boxes);
             t2 = chrono::high_resolution_clock::now();
             box_delete_counter++;
             box_delete_duration += chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
         if (Add_Box_Switch && (counter + 1) % 100 == 0) {
             generate_box_increment(Add_Boxes, Box_Length, Box_Num);
             t1 = chrono::high_resolution_clock::now();
-            ikd_Tree.Add_Point_Boxes(Add_Boxes);
+            ikd_Tree.add_point_boxes(Add_Boxes);
             t2 = chrono::high_resolution_clock::now();
             box_add_counter++;
             box_add_duration += chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
             PointVector().swap(search_result);
             target = generate_target_point();
             t1 = chrono::high_resolution_clock::now();
-            ikd_Tree.Nearest_Search(target, Nearest_Num, search_result, PointDist);
+            ikd_Tree.nearest_search(target, Nearest_Num, search_result, PointDist);
             t2 = chrono::high_resolution_clock::now();
             search_duration += chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
         }

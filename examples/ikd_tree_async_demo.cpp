@@ -16,7 +16,7 @@ using namespace std;
 using namespace ikd_tree;
 
 using PointType = pcl::PointXYZ;
-using PointVector = KD_TREE<PointType>::PointVector;
+using PointVector = KdTree<PointType>::PointVector;
 
 void colorize(const PointVector &pc, pcl::PointCloud<pcl::PointXYZRGB> &pc_colored, const std::vector<int> &color) {
     int N = pc.size();
@@ -51,8 +51,8 @@ void generate_box(BoxPointType &boxpoint, const PointType &center_pt, vector<flo
 
 int main(int argc, char **argv) {
     /*** 1. Initialize k-d tree */
-    KD_TREE<PointType>::Ptr kdtree_ptr(new KD_TREE<PointType>(0.3, 0.6, 0.2));
-    KD_TREE<PointType> &ikd_Tree = *kdtree_ptr;
+    KdTree<PointType>::Ptr kdtree_ptr(new KdTree<PointType>(0.3, 0.6, 0.2));
+    KdTree<PointType> &ikd_Tree = *kdtree_ptr;
 
     /*** 2. Load point cloud data */
     pcl::PointCloud<PointType>::Ptr src(new pcl::PointCloud<PointType>);
@@ -64,9 +64,9 @@ int main(int argc, char **argv) {
     }
     printf("Original: %d points are loaded\n", static_cast<int>(src->points.size()));
 
-    /*** 3. Build ikd-Tree */
+    /*** 3. build ikd-Tree */
     auto start = chrono::high_resolution_clock::now();
-    ikd_Tree.Build((*src).points);
+    ikd_Tree.build((*src).points);
     auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Building tree takes: %0.3f ms\n", float(duration) / 1e3);
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
     start = chrono::high_resolution_clock::now();
     vector<BoxPointType> boxes = {boxpoint};
-    int num_deleted = ikd_Tree.Delete_Point_Boxes(boxes);
+    int num_deleted = ikd_Tree.delete_point_boxes(boxes);
     end = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end - start).count();
     printf("Removal by box takes: %0.3f ms\n", float(duration) / 1e3);
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 
     /*** 5. Check remaining points in ikd-Tree */
     pcl::PointCloud<PointType>::Ptr Remaining_Points(new pcl::PointCloud<PointType>);
-    KD_TREE<PointType>::PointVector remaining;
+    KdTree<PointType>::PointVector remaining;
     ikd_Tree.flatten(remaining);
     Remaining_Points->points = remaining;
     printf("Finally, %d Points remain\n", static_cast<int>(Remaining_Points->points.size()));
