@@ -1,5 +1,6 @@
 # ikd-Tree
 
+[![CI](https://github.com/alvgaona/ikd-tree/actions/workflows/ci.yaml/badge.svg)](https://github.com/alvgaona/ikd-tree/actions/workflows/ci.yaml)
 [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 
 An incremental k-d tree for 3D point clouds. Insert, delete, k-NN, box and radius search, with
