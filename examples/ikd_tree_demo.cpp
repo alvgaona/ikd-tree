@@ -7,8 +7,9 @@
 #include <ikd_tree/ikd_tree.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <random>
 #include <algorithm>
+#include <chrono>
+#include <random>
 #include <vector>
 
 using namespace std;
