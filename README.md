@@ -1,131 +1,45 @@
 # ikd-Tree
 
-An incremental k-d tree for 3D point clouds, designed for online robotic perception (LiDAR SLAM,
-mapping, localisation). Supports incremental insert/delete, box-wise add/delete, k-nearest-neighbour
-and radius/box search, voxel down-sampling, and lazy background rebuild of unbalanced subtrees on a
-dedicated worker thread.
+An incremental k-d tree for 3D point clouds. Insert, delete, k-NN, box and radius search, with
+unbalanced subtrees rebuilt lazily on a background thread.
 
-Based on the paper *ikd-Tree: An Incremental K-D Tree for Robotic Applications* (Cai, Ren, Zhang,
-HKU-MARS, 2021).
+> [!NOTE]
+> Fork of [hku-mars/ikd-Tree](https://github.com/hku-mars/ikd-Tree), the reference implementation
+> from the paper *ikd-Tree: An Incremental K-D Tree for Robotic Applications* (Cai, Ren, Zhang,
+> HKU-MARS, 2021). This fork adds tests, sanitisers, CI, a namespaced API, and an installable
+> CMake package.
 
-## Quick start
+## Example
 
-ikd-Tree uses [pixi](https://pixi.sh) for its build and dependency management. Pixi pins the full
-toolchain — PCL, Eigen, GoogleTest, Google Benchmark, clang-format — so a clone-and-build flow needs
-only pixi itself:
+```cpp
+#include <ikd_tree/ikd_tree.h>
 
-```bash
-git clone https://github.com/alvgaona/ikd-tree.git
-cd ikd-tree
-pixi run build       # compile lib + tests + bench + examples
-pixi run test        # build + run tests
-pixi run bench       # build + run kNN benchmarks
+using Tree = ikd_tree::KdTree<ikd_tree::ikdTree_PointType>;
+Tree tree;
+tree.build(cloud);
+
+Tree::PointVector knn;
+std::vector<float> dists;
+tree.nearest_search({1, 2, 3}, /*k=*/10, knn, dists);
 ```
 
-Other useful tasks:
-
-| Task                | What it does                                              |
-| ------------------- | --------------------------------------------------------- |
-| `pixi run test-asan`| Tests under AddressSanitizer + UBSan                      |
-| `pixi run test-tsan`| Tests under ThreadSanitizer                               |
-| `pixi run format`   | Apply clang-format in place                               |
-| `pixi run format-check` | Verify clang-format compliance                        |
-| `pixi build`        | Produce a conda package                                   |
-
-## Use ikd-Tree in your project
-
-Build and install the conda package:
+## Build
 
 ```bash
-pixi build
-# install the produced .conda into your environment, or use pixi-build-cmake
-# as a backend in your own pixi project
+pixi run build   # compile lib + tests + bench + examples
+pixi run test    # run the test suite
 ```
 
-In your `CMakeLists.txt`:
+[pixi](https://pixi.sh) pins the full toolchain — PCL, Eigen, GoogleTest, Google Benchmark. Other
+tasks: `bench`, `test-asan`, `test-tsan`, `format`, `format-check`.
+
+## Use in your project
 
 ```cmake
 find_package(ikd_tree REQUIRED)
 target_link_libraries(your_target PRIVATE ikd_tree::ikd_tree)
 ```
 
-In your C++ code:
-
-```cpp
-#include <ikd_tree/ikd_tree.h>
-
-using Point = ikd_tree::ikdTree_PointType;
-using Tree  = ikd_tree::KdTree<Point>;
-
-Tree tree(/*delete_param=*/0.5f, /*balance_param=*/0.7f, /*downsample=*/0.2f);
-
-Tree::PointVector cloud = /* ... fill in ... */;
-tree.build(cloud);
-
-Tree::PointVector knn;
-std::vector<float> dists;
-tree.nearest_search(Point(1.0f, 2.0f, 3.0f), /*k=*/10, knn, dists);
-
-Tree::PointVector to_add = /* ... */;
-tree.add_points(to_add, /*downsample_on=*/true);
-
-Tree::PointVector to_del = /* ... */;
-tree.delete_points(to_del);
-```
-
-The class is templated; explicit instantiations are provided for `ikdTree_PointType`,
-`pcl::PointXYZ`, `pcl::PointXYZI`, and `pcl::PointXYZINormal`.
-
-## Public API summary
-
-| Method                                                     | Purpose                                   |
-| ---------------------------------------------------------- | ----------------------------------------- |
-| `build(cloud)`                                             | Build the tree from a point cloud         |
-| `add_points(pts, downsample_on)`                           | Incrementally insert points               |
-| `add_point_boxes(boxes)`                                   | Re-validate soft-deleted points in region |
-| `delete_points(pts)`                                       | Soft-delete points by coordinate          |
-| `delete_point_boxes(boxes)`                                | Soft-delete all points in box regions     |
-| `nearest_search(p, k, out_pts, out_dists, max_dist?)`      | k-NN search with optional distance cap    |
-| `box_search(box, out_pts)`                                 | Points inside a box                       |
-| `radius_search(p, r, out_pts)`                             | Points within radius `r` of `p`           |
-| `flatten(out_pts)`                                         | All currently-live points                 |
-| `acquire_removed_points(out_pts)`                          | Drains the deleted-points buffer          |
-| `size()` / `validnum()`                                    | Total nodes / live point count            |
-| `tree_range()`                                             | AABB of all live points                   |
-
-## Examples
-
-`examples/` contains three demos (built by `pixi run build`):
-
-- `ikd_tree_demo` — speed benchmark with synthetic data
-- `ikd_tree_search_demo` — box & radius search on a PCD point cloud
-- `ikd_tree_async_demo` — visual demo of the background rebuild thread
-
-The last two need
-[HKU_demo_pointcloud.pcd](https://drive.google.com/file/d/1tMYiBIFn-fcjisaoIrmIKA09NICGG9KJ/view?usp=sharing)
-in `materials/`.
-
-## Building without pixi (advanced)
-
-If you cannot use pixi, the project is a plain CMake build. You must provide your own PCL ≥ 1.8,
-Eigen 3.4, GoogleTest, and (optionally) Google Benchmark.
-
-```bash
-cmake -B build -S . -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON -DBUILD_BENCHMARKS=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-```
-
-CMake options:
-
-| Option              | Default | What it enables                       |
-| ------------------- | ------- | ------------------------------------- |
-| `BUILD_TESTING`     | OFF     | GoogleTest suite (`ikd_tree_tests`)   |
-| `BUILD_EXAMPLES`    | OFF     | The three demo executables            |
-| `BUILD_BENCHMARKS`  | OFF     | Google Benchmark target               |
-
-Requires C++17, CMake ≥ 3.15, pthreads.
-
 ## License
 
-GPL-2.0. See [LICENSE](LICENSE).
+[GPL-2.0](LICENSE).
