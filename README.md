@@ -9,7 +9,7 @@ unbalanced subtrees rebuilt lazily on a background thread.
 > [!NOTE]
 > Fork of [hku-mars/ikd-Tree](https://github.com/hku-mars/ikd-Tree), the reference implementation
 > from the paper *ikd-Tree: An Incremental K-D Tree for Robotic Applications* (Cai, Ren, Zhang,
-> HKU-MARS, 2021). This fork adds tests, sanitisers, CI, a namespaced API, and an installable
+> HKU-MARS, 2021). This fork adds tests, sanitizers, CI, a namespaced API, and an installable
 > CMake package.
 
 ## Example

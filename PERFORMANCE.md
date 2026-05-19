@@ -72,7 +72,7 @@ on `tree_deleted` to decide whether to include children) saves enough work to do
 
 - All deltas are run-to-run measurements on a single machine. Different microarchitectures or
   compilers may shift them; the structural changes (no 50 MB up-front allocation, simpler `Update`)
-  should generalise but the magnitudes won't.
+  should generalize but the magnitudes won't.
 - The "30 % deleted" benchmark configures the tree with high rebuild thresholds (`0.99 / 0.99`)
   to keep `Criterion_Check` from physically pruning the deleted nodes — otherwise the scenario
   degrades to the all-alive case.
