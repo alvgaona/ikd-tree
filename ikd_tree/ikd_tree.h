@@ -1,5 +1,4 @@
 #pragma once
-#include <pthread.h>
 #include <cmath>
 #include <memory>
 #include <utility>
@@ -77,29 +76,10 @@ template <typename PointType> class KdTree {
     using Ptr = std::shared_ptr<KdTree<PointType>>;
 
   private:
-    struct KD_TREE_NODE {
-        PointType point;
-        uint8_t division_axis;
-        int TreeSize = 1;
-        int invalid_point_num = 0;
-        int down_del_num = 0;
-        bool point_deleted = false;
-        bool tree_deleted = false;
-        bool point_downsample_deleted = false;
-        bool tree_downsample_deleted = false;
-        bool need_push_down_to_left = false;
-        bool need_push_down_to_right = false;
-        bool working_flag = false;
-        float radius_sq;
-        pthread_mutex_t push_down_mutex_lock;
-        float node_range_x[2], node_range_y[2], node_range_z[2];
-        KD_TREE_NODE *left_son_ptr = nullptr;
-        KD_TREE_NODE *right_son_ptr = nullptr;
-        KD_TREE_NODE *father_ptr = nullptr;
-        // For paper data record
-        float alpha_del = 0.0f;
-        float alpha_bal = 0.5f;
-    };
+    // Forward-declared private types; full definitions live in ikd_tree.cpp so
+    // pthread.h is not part of the public header surface.
+    struct KD_TREE_NODE;
+    struct Threads;
 
     struct Operation_Logger_Type {
         PointType point;
@@ -197,10 +177,7 @@ template <typename PointType> class KdTree {
     // Multi-thread Tree Rebuild
     bool termination_flag = false;
     bool rebuild_flag = false;
-    pthread_t rebuild_thread;
-    pthread_mutex_t termination_flag_mutex_lock, rebuild_ptr_mutex_lock, working_flag_mutex, search_flag_mutex;
-    pthread_mutex_t rebuild_logger_mutex_lock, points_deleted_rebuild_mutex_lock;
-    // queue<Operation_Logger_Type> Rebuild_Logger;
+    std::unique_ptr<Threads> threads_;
     MANUAL_Q<Operation_Logger_Type> Rebuild_Logger;
     PointVector Rebuild_PCL_Storage;
     KD_TREE_NODE **Rebuild_Ptr = nullptr;
