@@ -377,39 +377,6 @@ TEST(IkdTreeConfigTest, ConstructorWithCustomParams) {
     EXPECT_EQ(custom_tree.size(), 27);
 }
 
-TEST(IkdTreeConfigTest, ConstructorWithCustomRebuildLogCapacity) {
-    Tree custom_tree(0.5f, 0.7f, 0.2f, /*rebuild_log_capacity=*/256);
-    PointVector pts = make_grid(5);
-    custom_tree.build(pts);
-    PointVector extra;
-    for (int i = 0; i < 100; ++i)
-        extra.push_back(make_point(10.0f + i, 0, 0));
-    custom_tree.add_points(extra, false);
-    PointVector r;
-    std::vector<float> d;
-    custom_tree.nearest_search(make_point(50.0f, 0, 0), 1, r, d);
-    ASSERT_EQ(r.size(), 1u);
-    EXPECT_NEAR(r[0].x, 50.0f, 1e-5f);
-}
-
-TEST(IkdManualQ, RespectsConfiguredCapacity) {
-    ikd_tree::detail::RingQueue<int> q(8);
-    EXPECT_EQ(q.capacity(), 8);
-    EXPECT_TRUE(q.empty());
-    for (int i = 0; i < 8; ++i)
-        q.push(i);
-    EXPECT_EQ(q.size(), 8);
-    EXPECT_EQ(q.front(), 0);
-    for (int i = 0; i < 8; ++i)
-        q.pop();
-    EXPECT_TRUE(q.empty());
-}
-
-TEST(IkdManualQ, DefaultCapacityMatchesConstant) {
-    ikd_tree::detail::RingQueue<int> q;
-    EXPECT_EQ(q.capacity(), ikd_tree::detail::RingQueue<int>::kDefaultCapacity);
-}
-
 TEST(IkdTreeConfigTest, InitializeKDTreeSetsParams) {
     Tree t;
     t.initialize(0.4f, 0.8f, 0.3f);

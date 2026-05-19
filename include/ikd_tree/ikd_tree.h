@@ -1,60 +1,11 @@
 #pragma once
 #include <cmath>
+#include <deque>
 #include <memory>
-#include <utility>
 #include <vector>
 #include <pcl/point_types.h>
 
 namespace ikd_tree {
-
-namespace detail {
-
-// Fixed-capacity ring buffer used by the rebuild logger. The default matches
-// upstream (hku-mars/ikd-Tree) so this fork is a drop-in replacement; pass
-// `rebuild_log_capacity` to KdTree() to shrink it for memory-constrained
-// deployments. Overflow silently overwrites the oldest entry.
-template <typename T> class RingQueue {
-  public:
-    static constexpr int kDefaultCapacity = 1000000;
-
-    explicit RingQueue(int capacity = kDefaultCapacity) : cap_(capacity), q(new T[capacity]) {}
-    ~RingQueue() { delete[] q; }
-    RingQueue(const RingQueue &) = delete;
-    RingQueue &operator=(const RingQueue &) = delete;
-
-    void clear() {
-        head = 0;
-        tail = 0;
-        counter = 0;
-        is_empty = true;
-    }
-    void pop() {
-        if (counter == 0)
-            return;
-        head = (head + 1) % cap_;
-        if (--counter == 0)
-            is_empty = true;
-    }
-    void push(T op) {
-        q[tail] = std::move(op);
-        ++counter;
-        is_empty = false;
-        tail = (tail + 1) % cap_;
-    }
-    T front() { return q[head]; }
-    T back() { return q[tail]; }
-    bool empty() { return is_empty; }
-    int size() { return counter; }
-    int capacity() const { return cap_; }
-
-  private:
-    int cap_;
-    int head = 0, tail = 0, counter = 0;
-    T *q;
-    bool is_empty = true;
-};
-
-} // namespace detail
 
 struct ikdTree_PointType {
     float x, y, z;
@@ -182,7 +133,7 @@ template <typename PointType> class KdTree {
     bool termination_flag = false;
     bool rebuild_flag = false;
     std::unique_ptr<Threads> threads_;
-    detail::RingQueue<OperationLog> Rebuild_Logger;
+    std::deque<OperationLog> Rebuild_Logger;
     PointVector Rebuild_PCL_Storage;
     Node **Rebuild_Ptr = nullptr;
     int search_mutex_counter = 0;
@@ -231,8 +182,7 @@ template <typename PointType> class KdTree {
     Node *Root_Node = nullptr;
 
   public:
-    KdTree(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2,
-           int rebuild_log_capacity = detail::RingQueue<int>::kDefaultCapacity);
+    KdTree(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2);
     ~KdTree();
     void set_delete_criterion_param(float delete_param);
     void set_balance_criterion_param(float balance_param);
