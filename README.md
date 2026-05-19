@@ -41,7 +41,3 @@ tasks: `bench`, `test-asan`, `test-tsan`, `format`, `format-check`.
 find_package(ikd_tree REQUIRED)
 target_link_libraries(your_target PRIVATE ikd_tree::ikd_tree)
 ```
-
-## License
-
-[GPL-2.0](LICENSE).

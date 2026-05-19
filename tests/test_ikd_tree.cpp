@@ -393,7 +393,7 @@ TEST(IkdTreeConfigTest, ConstructorWithCustomRebuildLogCapacity) {
 }
 
 TEST(IkdManualQ, RespectsConfiguredCapacity) {
-    ikd_tree::MANUAL_Q<int> q(8);
+    ikd_tree::detail::RingQueue<int> q(8);
     EXPECT_EQ(q.capacity(), 8);
     EXPECT_TRUE(q.empty());
     for (int i = 0; i < 8; ++i)
@@ -406,8 +406,8 @@ TEST(IkdManualQ, RespectsConfiguredCapacity) {
 }
 
 TEST(IkdManualQ, DefaultCapacityMatchesConstant) {
-    ikd_tree::MANUAL_Q<int> q;
-    EXPECT_EQ(q.capacity(), ikd_tree::MANUAL_Q<int>::kDefaultCapacity);
+    ikd_tree::detail::RingQueue<int> q;
+    EXPECT_EQ(q.capacity(), ikd_tree::detail::RingQueue<int>::kDefaultCapacity);
 }
 
 TEST(IkdTreeConfigTest, InitializeKDTreeSetsParams) {

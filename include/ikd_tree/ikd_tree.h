@@ -7,37 +7,20 @@
 
 namespace ikd_tree {
 
-struct ikdTree_PointType {
-    float x, y, z;
-    ikdTree_PointType(float px = 0.0f, float py = 0.0f, float pz = 0.0f) {
-        x = px;
-        y = py;
-        z = pz;
-    }
-};
+namespace detail {
 
-struct BoxPointType {
-    float vertex_min[3];
-    float vertex_max[3];
-};
-
-enum operation_set { ADD_POINT, DELETE_POINT, DELETE_BOX, ADD_BOX, DOWNSAMPLE_DELETE, PUSH_DOWN };
-
-enum delete_point_storage_set { NOT_RECORD, DELETE_POINTS_REC, MULTI_THREAD_REC };
-
-// Fixed-capacity ring buffer used by the rebuild logger. The default
-// matches upstream (hku-mars/ikd-Tree) so this fork is a drop-in
-// replacement; pass `rebuild_log_capacity` to KdTree() to shrink it for
-// memory-constrained deployments. Overflow silently overwrites the oldest
-// entry.
-template <typename T> class MANUAL_Q {
+// Fixed-capacity ring buffer used by the rebuild logger. The default matches
+// upstream (hku-mars/ikd-Tree) so this fork is a drop-in replacement; pass
+// `rebuild_log_capacity` to KdTree() to shrink it for memory-constrained
+// deployments. Overflow silently overwrites the oldest entry.
+template <typename T> class RingQueue {
   public:
     static constexpr int kDefaultCapacity = 1000000;
 
-    explicit MANUAL_Q(int capacity = kDefaultCapacity) : cap_(capacity), q(new T[capacity]) {}
-    ~MANUAL_Q() { delete[] q; }
-    MANUAL_Q(const MANUAL_Q &) = delete;
-    MANUAL_Q &operator=(const MANUAL_Q &) = delete;
+    explicit RingQueue(int capacity = kDefaultCapacity) : cap_(capacity), q(new T[capacity]) {}
+    ~RingQueue() { delete[] q; }
+    RingQueue(const RingQueue &) = delete;
+    RingQueue &operator=(const RingQueue &) = delete;
 
     void clear() {
         head = 0;
@@ -71,6 +54,26 @@ template <typename T> class MANUAL_Q {
     bool is_empty = true;
 };
 
+} // namespace detail
+
+struct ikdTree_PointType {
+    float x, y, z;
+    ikdTree_PointType(float px = 0.0f, float py = 0.0f, float pz = 0.0f) {
+        x = px;
+        y = py;
+        z = pz;
+    }
+};
+
+struct BoxPointType {
+    float vertex_min[3];
+    float vertex_max[3];
+};
+
+enum operation_set { ADD_POINT, DELETE_POINT, DELETE_BOX, ADD_BOX, DOWNSAMPLE_DELETE, PUSH_DOWN };
+
+enum delete_point_storage_set { NOT_RECORD, DELETE_POINTS_REC, MULTI_THREAD_REC };
+
 template <typename PointType> class KdTree {
   public:
     using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
@@ -79,24 +82,24 @@ template <typename PointType> class KdTree {
   private:
     // Forward-declared private types; full definitions live in ikd_tree.cpp so
     // pthread.h is not part of the public header surface.
-    struct KD_TREE_NODE;
+    struct Node;
     struct Threads;
 
-    struct Operation_Logger_Type {
+    struct OperationLog {
         PointType point;
         BoxPointType boxpoint;
         bool tree_deleted, tree_downsample_deleted;
         operation_set op;
     };
 
-    struct PointType_CMP {
+    struct PointCmp {
         PointType point;
         float dist = 0.0;
-        PointType_CMP(PointType p = PointType(), float d = INFINITY) {
+        PointCmp(PointType p = PointType(), float d = INFINITY) {
             this->point = p;
             this->dist = d;
         };
-        bool operator<(const PointType_CMP &a) const {
+        bool operator<(const PointCmp &a) const {
             if (fabs(dist - a.dist) < 1e-10)
                 return point.x < a.point.x;
             else
@@ -104,15 +107,15 @@ template <typename PointType> class KdTree {
         }
     };
 
-    class MANUAL_HEAP {
+    class Heap {
       public:
-        MANUAL_HEAP(int max_capacity = 100) {
+        Heap(int max_capacity = 100) {
             cap = max_capacity;
-            heap = new PointType_CMP[max_capacity];
+            heap = new PointCmp[max_capacity];
             heap_size = 0;
         }
 
-        ~MANUAL_HEAP() { delete[] heap; }
+        ~Heap() { delete[] heap; }
 
         void pop() {
             if (heap_size == 0)
@@ -123,9 +126,9 @@ template <typename PointType> class KdTree {
             return;
         }
 
-        PointType_CMP top() { return heap[0]; }
+        PointCmp top() { return heap[0]; }
 
-        void push(PointType_CMP point) {
+        void push(PointCmp point) {
             if (heap_size >= cap)
                 return;
             heap[heap_size] = point;
@@ -141,10 +144,10 @@ template <typename PointType> class KdTree {
       private:
         int heap_size = 0;
         int cap = 0;
-        PointType_CMP *heap;
+        PointCmp *heap;
         void MoveDown(int heap_index) {
             int l = heap_index * 2 + 1;
-            PointType_CMP tmp = heap[heap_index];
+            PointCmp tmp = heap[heap_index];
             while (l < heap_size) {
                 if (l + 1 < heap_size && heap[l] < heap[l + 1])
                     l++;
@@ -161,7 +164,7 @@ template <typename PointType> class KdTree {
 
         void FloatUp(int heap_index) {
             int ancestor = (heap_index - 1) / 2;
-            PointType_CMP tmp = heap[heap_index];
+            PointCmp tmp = heap[heap_index];
             while (heap_index > 0) {
                 if (heap[ancestor] < tmp) {
                     heap[heap_index] = heap[ancestor];
@@ -179,15 +182,15 @@ template <typename PointType> class KdTree {
     bool termination_flag = false;
     bool rebuild_flag = false;
     std::unique_ptr<Threads> threads_;
-    MANUAL_Q<Operation_Logger_Type> Rebuild_Logger;
+    detail::RingQueue<OperationLog> Rebuild_Logger;
     PointVector Rebuild_PCL_Storage;
-    KD_TREE_NODE **Rebuild_Ptr = nullptr;
+    Node **Rebuild_Ptr = nullptr;
     int search_mutex_counter = 0;
     static void *multi_thread_ptr(void *arg);
     void multi_thread_rebuild();
     void start_thread();
     void stop_thread();
-    void run_operation(KD_TREE_NODE **root, const Operation_Logger_Type &operation);
+    void run_operation(Node **root, const OperationLog &operation);
     // KD Tree Functions and augmented variables
     int Treesize_tmp = 0, Validnum_tmp = 0;
     float alpha_bal_tmp = 0.5, alpha_del_tmp = 0.0;
@@ -195,41 +198,41 @@ template <typename PointType> class KdTree {
     float balance_criterion_param = 0.7f;
     float downsample_size = 0.2f;
     bool Delete_Storage_Disabled = false;
-    KD_TREE_NODE *STATIC_ROOT_NODE = nullptr;
+    Node *STATIC_ROOT_NODE = nullptr;
     PointVector Points_deleted;
     PointVector Downsample_Storage;
     PointVector Multithread_Points_deleted;
-    void InitTreeNode(KD_TREE_NODE *root);
-    void Test_Lock_States(KD_TREE_NODE *root);
-    void BuildTree(KD_TREE_NODE **root, int l, int r, PointVector &Storage);
-    void Rebuild(KD_TREE_NODE **root);
-    int Delete_by_range(KD_TREE_NODE **root, BoxPointType boxpoint, bool allow_rebuild, bool is_downsample);
-    void Delete_by_point(KD_TREE_NODE **root, const PointType &point, bool allow_rebuild);
-    void Add_by_point(KD_TREE_NODE **root, const PointType &point, bool allow_rebuild, int father_axis);
-    void Add_by_range(KD_TREE_NODE **root, BoxPointType boxpoint, bool allow_rebuild);
-    void Search(KD_TREE_NODE *root, int k_nearest, const PointType &point, MANUAL_HEAP &q, double max_dist);
-    void Search_by_range(KD_TREE_NODE *root, BoxPointType boxpoint, PointVector &Storage);
-    void Search_by_radius(KD_TREE_NODE *root, const PointType &point, float radius, PointVector &Storage);
-    bool Criterion_Check(KD_TREE_NODE *root);
-    void Push_Down(KD_TREE_NODE *root);
-    void Update(KD_TREE_NODE *root);
-    void delete_tree_nodes(KD_TREE_NODE **root);
-    void downsample(KD_TREE_NODE **root);
+    void InitTreeNode(Node *root);
+    void Test_Lock_States(Node *root);
+    void BuildTree(Node **root, int l, int r, PointVector &Storage);
+    void Rebuild(Node **root);
+    int Delete_by_range(Node **root, BoxPointType boxpoint, bool allow_rebuild, bool is_downsample);
+    void Delete_by_point(Node **root, const PointType &point, bool allow_rebuild);
+    void Add_by_point(Node **root, const PointType &point, bool allow_rebuild, int father_axis);
+    void Add_by_range(Node **root, BoxPointType boxpoint, bool allow_rebuild);
+    void Search(Node *root, int k_nearest, const PointType &point, Heap &q, double max_dist);
+    void Search_by_range(Node *root, BoxPointType boxpoint, PointVector &Storage);
+    void Search_by_radius(Node *root, const PointType &point, float radius, PointVector &Storage);
+    bool Criterion_Check(Node *root);
+    void Push_Down(Node *root);
+    void Update(Node *root);
+    void delete_tree_nodes(Node **root);
+    void downsample(Node **root);
     inline bool same_point(const PointType &a, const PointType &b);
     inline float calc_dist(const PointType &a, const PointType &b);
-    inline float calc_box_dist(KD_TREE_NODE *node, const PointType &point);
+    inline float calc_box_dist(Node *node, const PointType &point);
     static inline bool point_cmp_x(PointType a, PointType b);
     static inline bool point_cmp_y(PointType a, PointType b);
     static inline bool point_cmp_z(PointType a, PointType b);
 
-    void flatten(KD_TREE_NODE *root, PointVector &Storage, delete_point_storage_set storage_type);
+    void flatten(Node *root, PointVector &Storage, delete_point_storage_set storage_type);
 
     PointVector PCL_Storage;
-    KD_TREE_NODE *Root_Node = nullptr;
+    Node *Root_Node = nullptr;
 
   public:
     KdTree(float delete_param = 0.5, float balance_param = 0.7, float box_length = 0.2,
-           int rebuild_log_capacity = MANUAL_Q<int>::kDefaultCapacity);
+           int rebuild_log_capacity = detail::RingQueue<int>::kDefaultCapacity);
     ~KdTree();
     void set_delete_criterion_param(float delete_param);
     void set_balance_criterion_param(float balance_param);
