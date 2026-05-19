@@ -56,7 +56,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload to prefix.dev
-        run: pixi exec rattler-build upload prefix --channel ikd-tree artifacts/**/*.conda
+        run: find artifacts -name '*.conda' -print0 | xargs -0 pixi exec rattler-build upload prefix --channel ikd-tree
         env:
           PREFIX_API_KEY: ${{ secrets.PREFIX_DEV_API_KEY }}
 
