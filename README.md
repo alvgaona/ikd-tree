@@ -8,46 +8,51 @@ dedicated worker thread.
 Based on the paper *ikd-Tree: An Incremental K-D Tree for Robotic Applications* (Cai, Ren, Zhang,
 HKU-MARS, 2021).
 
-## Requirements
+## Quick start
 
-- C++17
-- CMake >= 3.5
-- PCL >= 1.8
-- pthreads
-- Eigen (transitively via PCL)
-
-## build
-
-### With pixi (recommended)
-
-[pixi](https://pixi.sh) brings the full toolchain — PCL, Eigen, GoogleTest, Google Benchmark.
+ikd-Tree uses [pixi](https://pixi.sh) for its build and dependency management. Pixi pins the full
+toolchain — PCL, Eigen, GoogleTest, Google Benchmark, clang-format — so a clone-and-build flow needs
+only pixi itself:
 
 ```bash
+git clone https://github.com/alvgaona/ikd-tree.git
+cd ikd-tree
+pixi run build       # compile lib + tests + bench + examples
 pixi run test        # build + run tests
 pixi run bench       # build + run kNN benchmarks
-pixi build           # produce a conda package
 ```
 
-### Manually
+Other useful tasks:
+
+| Task                | What it does                                              |
+| ------------------- | --------------------------------------------------------- |
+| `pixi run test-asan`| Tests under AddressSanitizer + UBSan                      |
+| `pixi run test-tsan`| Tests under ThreadSanitizer                               |
+| `pixi run format`   | Apply clang-format in place                               |
+| `pixi run format-check` | Verify clang-format compliance                        |
+| `pixi build`        | Produce a conda package                                   |
+
+## Use ikd-Tree in your project
+
+Build and install the conda package:
 
 ```bash
-cmake -B build -S . -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
+pixi build
+# install the produced .conda into your environment, or use pixi-build-cmake
+# as a backend in your own pixi project
 ```
 
-build options:
+In your `CMakeLists.txt`:
 
-| Option              | Default | What it enables                       |
-| ------------------- | ------- | ------------------------------------- |
-| `BUILD_TESTING`     | OFF     | GoogleTest suite (`ikd_tree_tests`)   |
-| `BUILD_EXAMPLES`    | OFF     | The three demo executables            |
-| `BUILD_BENCHMARKS`  | OFF     | Google Benchmark target               |
+```cmake
+find_package(ikd_tree REQUIRED)
+target_link_libraries(your_target PRIVATE ikd_tree::ikd_tree)
+```
 
-## Minimal usage
+In your C++ code:
 
 ```cpp
-#include <ikd_tree.h>
+#include <ikd_tree/ikd_tree.h>
 
 using Point = ikd_tree::ikdTree_PointType;
 using Tree  = ikd_tree::KdTree<Point>;
@@ -75,7 +80,7 @@ The class is templated; explicit instantiations are provided for `ikdTree_PointT
 
 | Method                                                     | Purpose                                   |
 | ---------------------------------------------------------- | ----------------------------------------- |
-| `build(cloud)`                                             | build the tree from a point cloud         |
+| `build(cloud)`                                             | Build the tree from a point cloud         |
 | `add_points(pts, downsample_on)`                           | Incrementally insert points               |
 | `add_point_boxes(boxes)`                                   | Re-validate soft-deleted points in region |
 | `delete_points(pts)`                                       | Soft-delete points by coordinate          |
@@ -90,7 +95,7 @@ The class is templated; explicit instantiations are provided for `ikdTree_PointT
 
 ## Examples
 
-`examples/` contains three demos (built with `-DBUILD_EXAMPLES=ON`):
+`examples/` contains three demos (built by `pixi run build`):
 
 - `ikd_tree_demo` — speed benchmark with synthetic data
 - `ikd_tree_search_demo` — box & radius search on a PCD point cloud
@@ -99,6 +104,27 @@ The class is templated; explicit instantiations are provided for `ikdTree_PointT
 The last two need
 [HKU_demo_pointcloud.pcd](https://drive.google.com/file/d/1tMYiBIFn-fcjisaoIrmIKA09NICGG9KJ/view?usp=sharing)
 in `materials/`.
+
+## Building without pixi (advanced)
+
+If you cannot use pixi, the project is a plain CMake build. You must provide your own PCL ≥ 1.8,
+Eigen 3.4, GoogleTest, and (optionally) Google Benchmark.
+
+```bash
+cmake -B build -S . -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON -DBUILD_BENCHMARKS=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+CMake options:
+
+| Option              | Default | What it enables                       |
+| ------------------- | ------- | ------------------------------------- |
+| `BUILD_TESTING`     | OFF     | GoogleTest suite (`ikd_tree_tests`)   |
+| `BUILD_EXAMPLES`    | OFF     | The three demo executables            |
+| `BUILD_BENCHMARKS`  | OFF     | Google Benchmark target               |
+
+Requires C++17, CMake ≥ 3.15, pthreads.
 
 ## License
 
